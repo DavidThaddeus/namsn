@@ -129,7 +129,7 @@ export default function InvoicePage({
               <Image src="/namsn.png" alt="NAMSN" width={48} height={48} />
               <div>
                 <p className="font-display text-lg font-bold text-foreground">NAMSN FUNAAB</p>
-                <p className="text-xs text-muted-foreground">Dept. of Mathematics, FUNAAB</p>
+                <p className="text-xs text-muted-foreground">Department of Mathematics, FUNAAB</p>
               </div>
             </div>
           </div>
@@ -145,6 +145,10 @@ export default function InvoicePage({
             <div>
               <p className="text-muted-foreground">Name</p>
               <p className="font-medium text-foreground">{dues.fullName}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Email</p>
+              <p className="font-medium text-foreground">{dues.email}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Matric Number</p>
@@ -168,7 +172,13 @@ export default function InvoicePage({
             </div>
           </div>
 
-          <div className="mt-6 space-y-2 border-t border-border pt-4 text-sm">
+          <div className="mt-6 border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground">Paid to</p>
+            <p className="text-sm font-medium text-foreground">NAMSN</p>
+            <p className="text-sm text-muted-foreground">funaabnamsn@gmail.com</p>
+          </div>
+
+          <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
             <div className="flex justify-between text-muted-foreground">
               <span>Dues</span>
               <span>{formatNaira(dues.amount)}</span>

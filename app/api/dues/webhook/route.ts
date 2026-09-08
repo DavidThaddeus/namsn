@@ -45,15 +45,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, duplicate: true });
   }
 
-  const reference = event.data.reference || event.data.meta?.dues_request_reference;
+  // Match by our own dues_request id (sent as checkout metadata) first —
+  // it's our real primary key and never changes. The Bachs checkout
+  // `reference` is a fresh, per-attempt value (see checkout/route.ts), so
+  // it's only useful as a fallback, not the primary lookup.
+  const duesId = event.data.meta?.dues_request_id;
+  const reference = event.data.reference;
 
   let duesRequestId: string | null = null;
-  if (reference) {
-    const { data: dues } = await supabaseService
-      .from('dues_requests')
-      .select('id, payment_status')
-      .eq('reference', reference)
-      .maybeSingle();
+  {
+    const query = supabaseService.from('dues_requests').select('id, payment_status');
+    const { data: dues } = duesId
+      ? await query.eq('id', duesId).maybeSingle()
+      : reference
+        ? await query.eq('reference', reference).maybeSingle()
+        : { data: null };
 
     if (dues) {
       duesRequestId = dues.id;

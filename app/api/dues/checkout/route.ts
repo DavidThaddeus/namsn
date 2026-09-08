@@ -51,11 +51,17 @@ export async function POST(req: NextRequest) {
   const origin = process.env.SITE_URL || req.nextUrl.origin;
 
   try {
+    // Bachs requires a checkout session's `reference` to be unique per
+    // attempt, not per invoice — dues.reference stays the same for the
+    // life of the invoice (shown on receipts, used for search), so a retry
+    // needs its own fresh value here instead of reusing it directly.
+    const attemptReference = `${dues.reference}-${Date.now().toString(36).toUpperCase()}`;
+
     const session = await createCheckoutSession({
       customerEmail: dues.email,
       customerName: dues.full_name,
       amountNaira: dues.total_amount,
-      reference: dues.reference,
+      reference: attemptReference,
       successUrl: `${origin}/dashboard/dues?paid=1&reference=${dues.reference}`,
       cancelUrl: `${origin}/dashboard/dues?cancelled=1`,
       metadata: { dues_request_id: dues.id },

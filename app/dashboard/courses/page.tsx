@@ -1,240 +1,207 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Course } from '@/types/course';
-import { subscribeToPublishedCourses } from '@/lib/firebase/courseService';
-import { format } from 'date-fns';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { Course, extractYoutubeId } from '@/types/course';
+import { getPublishedCourses } from '@/lib/supabase/courseService';
+import { getCourseFolders } from '@/lib/supabase/courseFolderService';
+import { CourseFolder } from '@/types/courseFolder';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, Clock, BookOpen } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, BookOpen, Clock, Folder, Loader2, PlayCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-// ===================== //
-//   User Dashboard Page //
-// ===================== //
+type FolderTile = { id: string; name: string; courses: Course[] };
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [folders, setFolders] = useState<CourseFolder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<FolderTile | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const unsubscribeRef = useRef<(() => void) | null>(null);
-  
-  // Load published courses only
   useEffect(() => {
-    let isMounted = true;
-
-    const loadCourses = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const unsubscribe = subscribeToPublishedCourses(
-          (courses) => {
-            if (isMounted) {
-              setCourses(courses);
-              setError(null);
-            }
-          },
-          (error) => {
-            console.error('Error in courses subscription:', error);
-            if (isMounted) {
-              setError('Failed to load courses. Please try refreshing the page.');
-            }
-          }
-        );
-
-        unsubscribeRef.current = unsubscribe;
-      } catch (error) {
-        console.error('Error loading courses:', error);
-        if (isMounted) {
-          setError('Failed to load courses. Please try refreshing the page.');
+    let cancelled = false;
+    Promise.all([getPublishedCourses(200), getCourseFolders()])
+      .then(([coursesData, foldersData]) => {
+        if (!cancelled) {
+          setCourses(coursesData);
+          setFolders(foldersData);
         }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadCourses();
-    
+      })
+      .catch((err) => {
+        console.error('Error loading courses:', err);
+        if (!cancelled) setError('Some courses may be unavailable right now.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
-      isMounted = false;
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-        unsubscribeRef.current = null;
-      }
+      cancelled = true;
     };
   }, []);
 
   const handleCourseSelect = (course: Course) => {
     setSelectedCourse(course);
     setTimeout(() => {
-      document.getElementById('course-player')?.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
+      document.getElementById('course-player')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
+  };
+
+  const openFolder = (tile: FolderTile) => {
+    setSelectedCourse(null);
+    setSelectedFolder(tile);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="text-red-500 text-center">
-          <h2 className="text-lg font-semibold mb-2">Error Loading Courses</h2>
-          <p>{error}</p>
+  const tiles: FolderTile[] = [
+    ...folders.map((folder) => ({ id: folder.id, name: folder.name, courses: courses.filter((c) => c.folderId === folder.id) })),
+    { id: 'uncategorized', name: 'Other Courses', courses: courses.filter((c) => !c.folderId) },
+  ].filter((tile) => tile.courses.length > 0);
+
+  const renderCourseCard = (course: Course) => (
+    <div
+      key={course.id}
+      onClick={() => handleCourseSelect(course)}
+      className={cn(
+        'cursor-pointer overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md',
+        selectedCourse?.id === course.id && 'ring-2 ring-accent'
+      )}
+    >
+      <div className="group relative aspect-video bg-muted">
+        {course.thumbnailUrl && (
+          <Image
+            src={course.thumbnailUrl}
+            alt={course.title}
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+            unoptimized
+          />
+        )}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+          <PlayCircle className="h-12 w-12 text-white" />
         </div>
-        <Button 
-          onClick={() => window.location.reload()} 
-          variant="outline"
-        >
-          Refresh Page
-        </Button>
       </div>
-    );
-  }
+      <div className="p-4">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{course.category || 'General'}</Badge>
+          <Badge variant="outline">{course.level}</Badge>
+        </div>
+        <h3 className="font-display mt-3 text-lg font-semibold leading-tight text-foreground line-clamp-2">
+          {course.title}
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{course.description}</p>
+        <div className="mt-4 flex items-center gap-1 text-xs text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          <span>{course.duration || '0:00'}</span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Courses</h1>
-        <p className="text-muted-foreground">
-          Browse and watch available courses
+      {selectedFolder && (
+        <button
+          type="button"
+          onClick={() => { setSelectedFolder(null); setSelectedCourse(null); }}
+          className="flex items-center gap-1 text-sm font-medium text-secondary hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to categories
+        </button>
+      )}
+
+      <div className="border-b border-border pb-5">
+        <h1 className="font-display text-2xl font-bold text-foreground">
+          {selectedFolder ? selectedFolder.name : 'Courses'}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {selectedFolder ? 'Available course videos in this category.' : 'Browse available course categories.'}
         </p>
+        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
       </div>
 
-      {/* Course List */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {courses.length > 0 ? (
-          courses.map((course) => (
-            <div 
-              key={course.id} 
-              className={`rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden transition-all hover:shadow-md cursor-pointer ${
-                selectedCourse?.id === course.id ? 'ring-2 ring-indigo-500' : ''
-              }`}
-              onClick={() => handleCourseSelect(course)}
+      {courses.length === 0 ? (
+        <div className="rounded-lg border-2 border-dashed border-border py-12 text-center">
+          <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="text-lg font-medium text-foreground">No courses available</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Check back later for new courses</p>
+        </div>
+      ) : !selectedFolder ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {tiles.map((tile) => (
+            <button
+              key={tile.id}
+              type="button"
+              onClick={() => openFolder(tile)}
+              className="flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-6 text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
             >
-              <div className="relative aspect-video bg-muted">
-                <img
-                  src={course.thumbnailUrl || '/placeholder.svg'}
-                  alt={course.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = '/placeholder.svg';
-                  }}
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <PlayCircle className="h-12 w-12 text-white" />
-                </div>
+              <div className="flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground">
+                <Folder className="h-5 w-5" />
               </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg leading-tight line-clamp-2">
-                  {course.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                  {course.description}
+              <div>
+                <p className="font-medium text-foreground">{tile.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {tile.courses.length} course{tile.courses.length === 1 ? '' : 's'}
                 </p>
-                <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{course.duration || '0:00'}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="h-3 w-3" />
-                    <span>{course.category || 'General'}</span>
-                  </div>
-                </div>
               </div>
-            </div>
-          ))
-        ) : (
-          <div className="col-span-full text-center py-12 border-2 border-dashed rounded-lg">
-            <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No courses available</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Check back later for new courses
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Course Player Section */}
-      {selectedCourse && selectedCourse.youtubeUrl && extractYoutubeId(selectedCourse.youtubeUrl) && (
-        <div id="course-player" className="mt-12 space-y-4">
-          <h2 className="text-xl font-semibold">{selectedCourse.title}</h2>
-          <div className="aspect-video w-full bg-black rounded-lg overflow-hidden">
-            <iframe
-              src={`https://www.youtube.com/embed/${extractYoutubeId(selectedCourse.youtubeUrl)}`}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title={selectedCourse.title}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {selectedCourse.level && (
-                <span className="px-2 py-1 bg-muted rounded-md text-xs">
-                  {selectedCourse.level}
-                </span>
-              )}
-              <span>{selectedCourse.duration || '0:00'}</span>
-            </div>
-            <p className="text-muted-foreground">{selectedCourse.description}</p>
-          </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {selectedFolder.courses.map(renderCourseCard)}
         </div>
       )}
 
-      {/* Invalid YouTube URL */}
-      {selectedCourse && selectedCourse.youtubeUrl && !extractYoutubeId(selectedCourse.youtubeUrl) && (
-        <div id="course-player" className="mt-12 space-y-4">
-          <h2 className="text-xl font-semibold">{selectedCourse.title}</h2>
-          <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <PlayCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Invalid YouTube URL</p>
-              <p className="text-sm">Please contact support to fix this course.</p>
+      {selectedCourse && (
+        <div id="course-player" className="space-y-4">
+          <h2 className="font-display text-xl font-semibold text-foreground">{selectedCourse.title}</h2>
+          {selectedCourse.sourceType === 'youtube' && selectedCourse.youtubeUrl && extractYoutubeId(selectedCourse.youtubeUrl) ? (
+            <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+              <iframe
+                src={`https://www.youtube.com/embed/${extractYoutubeId(selectedCourse.youtubeUrl)}`}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={selectedCourse.title}
+              />
             </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {selectedCourse.level && (
-                <span className="px-2 py-1 bg-muted rounded-md text-xs">
-                  {selectedCourse.level}
-                </span>
-              )}
-              <span>{selectedCourse.duration || '0:00'}</span>
+          ) : selectedCourse.sourceType === 'upload' && selectedCourse.fileUrl ? (
+            selectedCourse.fileUrl.toLowerCase().endsWith('.pdf') ? (
+              <div className="aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted">
+                <iframe src={selectedCourse.fileUrl} className="h-full w-full" title={selectedCourse.title} />
+              </div>
+            ) : (
+              <video controls className="aspect-video w-full rounded-xl bg-black" src={selectedCourse.fileUrl} />
+            )
+          ) : (
+            <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-muted">
+              <div className="text-center text-muted-foreground">
+                <PlayCircle className="mx-auto mb-2 h-12 w-12 opacity-50" />
+                <p>This course has no playable content.</p>
+              </div>
             </div>
-            <p className="text-muted-foreground">{selectedCourse.description}</p>
+          )}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {selectedCourse.level && <Badge variant="outline">{selectedCourse.level}</Badge>}
+            <span>{selectedCourse.duration || '0:00'}</span>
           </div>
+          <p className="text-muted-foreground">{selectedCourse.description}</p>
+          <Button variant="outline" onClick={() => setSelectedCourse(null)}>
+            Close player
+          </Button>
         </div>
       )}
     </div>
   );
-}
-
-// Helper function to extract YouTube video ID safely
-function extractYoutubeId(url: string): string {
-  if (!url || typeof url !== 'string') {
-    return '';
-  }
-  
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  
-  if (match && match[2] && match[2].length === 11) {
-    return match[2];
-  }
-  
-  return '';
 }

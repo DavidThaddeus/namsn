@@ -1,38 +1,34 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User, 
-  UserCredential,
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut,
-  updateProfile,
-  sendPasswordResetEmail
-} from 'firebase/auth';
+import type { AuthError, User as SupabaseUser } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { supabase } from '@/lib/supabase/config';
+import { updateProfile as updateProfileRow } from '@/lib/supabase/profileService';
 
-interface UserData {
+// Compatibility shape: the rest of the app (21 files) reads currentUser.uid /
+// .email / .displayName, a pattern carried over from Firebase's `User` type.
+// Keeping this shape here means none of those files had to change when the
+// backend swapped — only this file and the two spots that read the full
+// profile (uid alone isn't enough there) needed touching.
+export interface AppUser {
   uid: string;
   email: string;
   displayName: string;
-  photoURL?: string;
-  role?: 'user' | 'admin';
-  createdAt: Date;
-  updatedAt: Date;
-  // Add any additional user fields here
+}
+
+interface SignupData {
   firstName?: string;
   lastName?: string;
   matricNumber?: string;
+  level?: string;
+  [key: string]: unknown;
 }
 
 interface AuthContextType {
-  currentUser: User | null;
-  login: (email: string, password: string) => Promise<UserCredential>;
-  signup: (email: string, password: string, displayName: string, additionalData?: any) => Promise<User>;
+  currentUser: AppUser | null;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, displayName: string, additionalData?: SignupData) => Promise<AppUser>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   loading: boolean;
@@ -44,70 +40,105 @@ export function useAuth() {
   return useContext(AuthContext) as AuthContextType;
 }
 
+// Supabase throws AuthError with a message string (codes vary by SDK
+// version, so matching on message is more reliable). Normalized back to the
+// same 'auth/...' codes the login/register pages already check for, so
+// those two files' error-handling branches didn't need to change either.
+function mapAuthError(error: Error): { code: string; message: string } {
+  const msg = error.message.toLowerCase();
+  if (msg.includes('invalid login credentials')) {
+    return { code: 'auth/wrong-password', message: 'Invalid email or password' };
+  }
+  if (msg.includes('already registered') || msg.includes('already exists')) {
+    return {
+      code: 'auth/email-already-in-use',
+      message: 'This email is already registered. Please use a different email or sign in.',
+    };
+  }
+  if (msg.includes('password') && (msg.includes('at least') || msg.includes('too short'))) {
+    return { code: 'auth/weak-password', message: 'Password should be at least 6 characters' };
+  }
+  if (msg.includes('unable to validate email') || msg.includes('invalid email')) {
+    return { code: 'auth/invalid-email', message: 'Please enter a valid email address' };
+  }
+  if (msg.includes('rate limit') || msg.includes('too many')) {
+    return { code: 'auth/too-many-requests', message: 'Too many attempts. Please try again later' };
+  }
+  return { code: 'auth/unknown', message: error.message || 'Something went wrong' };
+}
+
+function toAppUser(user: SupabaseUser): AppUser {
+  return {
+    uid: user.id,
+    email: user.email || '',
+    displayName: (user.user_metadata?.display_name as string) || '',
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const signup = async (email: string, password: string, displayName: string, additionalData?: any) => {
+  const signup = async (
+    email: string,
+    password: string,
+    displayName: string,
+    additionalData?: SignupData
+  ): Promise<AppUser> => {
     const toastId = toast.loading('Creating your account...');
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // Update user profile with display name
-      await updateProfile(userCredential.user, { displayName });
-      
-      // Create user document in Firestore
-      const userDoc = {
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-        displayName,
-        role: 'user', // Default role
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ...additionalData
-      };
-      
-      await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
-      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+            first_name: additionalData?.firstName,
+            last_name: additionalData?.lastName,
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error('Account creation did not return a user');
+
+      // The `handle_new_user` Postgres trigger already inserted a bare
+      // profiles row (id + email) the moment auth.users got the new row —
+      // fill in the rest of what the registration form collected, same as
+      // the old Firestore signup wrote in one shot.
+      await updateProfileRow(data.user.id, {
+        firstName: additionalData?.firstName,
+        lastName: additionalData?.lastName,
+        matricNumber: additionalData?.matricNumber,
+        level: additionalData?.level,
+      });
+
       toast.success('Account created successfully!', { id: toastId });
-      return userCredential.user;
-    } catch (error: any) {
-      let errorMessage = 'Failed to create account';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Email is already in use';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password should be at least 6 characters';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      }
-      toast.error(errorMessage, { id: toastId });
-      throw error;
+      return toAppUser(data.user);
+    } catch (error) {
+      const { code, message } = mapAuthError(error as AuthError);
+      toast.error(message, { id: toastId });
+      throw Object.assign(new Error(message), { code });
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     const toastId = toast.loading('Signing in...');
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       toast.success('Signed in successfully!', { id: toastId });
-      return userCredential;
-    } catch (error: any) {
-      let errorMessage = 'Failed to sign in';
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = 'Invalid email or password';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many attempts. Please try again later';
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled';
-      }
-      toast.error(errorMessage, { id: toastId });
-      throw error;
+    } catch (error) {
+      const { code, message } = mapAuthError(error as AuthError);
+      toast.error(message, { id: toastId });
+      throw Object.assign(new Error(message), { code });
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     try {
-      await signOut(auth);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       toast.success('Signed out successfully');
     } catch (error) {
       toast.error('Failed to sign out');
@@ -115,31 +146,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = async (email: string): Promise<void> => {
     const toastId = toast.loading('Sending password reset email...');
     try {
-      await sendPasswordResetEmail(auth, email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
       toast.success('Password reset email sent!', { id: toastId });
-    } catch (error: any) {
-      let errorMessage = 'Failed to send reset email';
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email';
-      }
-      toast.error(errorMessage, { id: toastId });
+    } catch (error) {
+      const { message } = mapAuthError(error as Error);
+      toast.error(message, { id: toastId });
       throw error;
     }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user ? toAppUser(session.user) : null);
       setLoading(false);
     });
 
-    return unsubscribe;
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ? toAppUser(session.user) : null);
+      setLoading(false);
+    });
+
+    return () => listener.subscription.unsubscribe();
   }, []);
 
-  const value = {
+  const value: AuthContextType = {
     currentUser,
     login,
     signup,
@@ -148,9 +182,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 }

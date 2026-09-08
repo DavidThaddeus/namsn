@@ -1,0 +1,83 @@
+// Server-only Bachs API client. Never import from a 'use client' component —
+// the secret key must never reach the browser.
+const BACHS_SECRET_KEY = process.env.BACHS_SECRET_KEY!;
+const BACHS_BASE_URL = BACHS_SECRET_KEY.startsWith('sk_live_')
+  ? 'https://api.bachs.io'
+  : 'https://sandbox-api.bachs.io';
+
+interface BachsErrorBody {
+  detail: string;
+  error_code: string;
+}
+
+async function bachsFetch<T>(path: string, init: RequestInit): Promise<T> {
+  const res = await fetch(`${BACHS_BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${BACHS_SECRET_KEY}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...init.headers,
+    },
+  });
+
+  const body = await res.json();
+  if (!res.ok) {
+    const err = body as BachsErrorBody;
+    throw new Error(`Bachs API error (${err.error_code}): ${err.detail}`);
+  }
+  return body as T;
+}
+
+export interface CreateCheckoutSessionInput {
+  customerEmail: string;
+  customerName: string;
+  amountNaira: number;
+  reference: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+  /** When set, routes a fixed share of the sale to this connected account
+   * (e.g. the department's Bachs account) and lets the platform absorb the
+   * rest after Bachs's own processing fee. */
+  destination?: { accountId: string; amountNaira: number };
+  idempotencyKey: string;
+}
+
+export interface CreateCheckoutSessionResponse {
+  checkout_id: string;
+  checkout_url: string;
+  status: 'open' | 'completed' | 'expired' | 'cancelled';
+  expires_at: string;
+  created_at: string;
+  reference: string | null;
+}
+
+export const createCheckoutSession = (
+  input: CreateCheckoutSessionInput
+): Promise<CreateCheckoutSessionResponse> => {
+  return bachsFetch<CreateCheckoutSessionResponse>('/v1/checkout-sessions', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': input.idempotencyKey },
+    body: JSON.stringify({
+      customer: { email: input.customerEmail, name: input.customerName },
+      pricing: {
+        currency: 'NGN',
+        amount: input.amountNaira.toFixed(2),
+        price_type: 'fixed',
+      },
+      reference: input.reference,
+      metadata: input.metadata,
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
+      ...(input.destination
+        ? {
+            transfer_data: {
+              destination: input.destination.accountId,
+              amount: input.destination.amountNaira.toFixed(2),
+            },
+          }
+        : {}),
+    }),
+  });
+};

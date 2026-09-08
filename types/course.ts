@@ -1,17 +1,20 @@
-import { Timestamp } from 'firebase/firestore';
+export type CourseSourceType = 'youtube' | 'upload';
 
 export interface Course {
   id: string;
   title: string;
   description: string;
-  youtubeUrl: string;
+  sourceType: CourseSourceType;
+  youtubeUrl?: string;
+  fileUrl?: string;
   thumbnailUrl: string;
   duration: string;
   category: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   isPublished: boolean;
-  createdAt: Timestamp | Date;
-  updatedAt: Timestamp | Date;
+  folderId?: string;
+  createdAt: Date;
+  updatedAt: Date;
   createdBy: string;
   createdByName: string;
 }
@@ -19,10 +22,13 @@ export interface Course {
 export interface CreateCourseDto {
   title: string;
   description: string;
-  youtubeUrl: string;
+  sourceType: CourseSourceType;
+  youtubeUrl?: string;
+  fileUrl?: string;
   category: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   isPublished: boolean;
+  folderId?: string;
 }
 
 export interface UpdateCourseDto extends Partial<CreateCourseDto> {

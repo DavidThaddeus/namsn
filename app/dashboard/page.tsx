@@ -1,32 +1,15 @@
 'use client';
-import { useState, useEffect } from 'react';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, GraduationCap, BookOpen, Clock, FileText, Calendar, Bell } from 'lucide-react';
+import { ArrowRight, Bell, Clock, FileText, GraduationCap, Wallet } from 'lucide-react';
 import { Announcement } from '@/types/announcement';
 import { Material } from '@/types/material';
-import { subscribeToAnnouncements } from '@/lib/firebase/announcementService';
-import { subscribeToRecentMaterials } from '@/lib/firebase/materialService';
+import { getAnnouncements } from '@/lib/supabase/announcementService';
+import { getRecentMaterials } from '@/lib/supabase/materialService';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-
-const upcomingClasses = [
-  {
-    id: 1,
-    course: 'CSC 101',
-    time: '09:00 AM - 10:30 AM',
-    room: 'Building A, Room 101',
-  },
-  {
-    id: 2,
-    course: 'MTS 211',
-    time: '11:00 AM - 12:30 PM',
-    room: 'Building B, Room 205',
-  },
-];
-
-// Recent materials will be fetched from Firebase
+import { getProfile } from '@/lib/supabase/profileService';
 
 export default function DashboardPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -39,50 +22,36 @@ export default function DashboardPage() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const { currentUser } = useAuth();
 
-  // Calculate unread announcements count
-  const unreadAnnouncements = announcements.filter(announcement => 
-    announcement.isRead === false || announcement.isRead === undefined
-  ).length;
-
-  // Load recent announcements
   useEffect(() => {
-    const onData = (data: Announcement[]) => {
-      setAnnouncements(data);
-      setIsLoadingAnnouncements(false);
-    };
-
-    const onError = (err: Error) => {
-      console.error('Error loading announcements:', err);
-      setIsLoadingAnnouncements(false);
-    };
-
-    const unsubscribe = subscribeToAnnouncements(onData, onError, 5); // Show 5 most recent announcements
-
+    let cancelled = false;
+    getAnnouncements(5)
+      .then((data) => {
+        if (!cancelled) setAnnouncements(data);
+      })
+      .catch((err) => console.error('Error loading announcements:', err))
+      .finally(() => {
+        if (!cancelled) setIsLoadingAnnouncements(false);
+      });
     return () => {
-      if (unsubscribe) unsubscribe();
+      cancelled = true;
     };
   }, []);
 
-  // Load recent materials
   useEffect(() => {
-    const onMaterialsData = (materials: Material[]) => {
-      setRecentMaterials(materials);
-      setIsLoadingMaterials(false);
-    };
-
-    const onError = (err: Error) => {
-      console.error('Error loading materials:', err);
-      setIsLoadingMaterials(false);
-    };
-
-    const unsubscribe = subscribeToRecentMaterials(onMaterialsData, onError, 5); // Show 5 most recent materials
-
+    let cancelled = false;
+    getRecentMaterials(5)
+      .then((data) => {
+        if (!cancelled) setRecentMaterials(data);
+      })
+      .catch((err) => console.error('Error loading materials:', err))
+      .finally(() => {
+        if (!cancelled) setIsLoadingMaterials(false);
+      });
     return () => {
-      if (unsubscribe) unsubscribe();
+      cancelled = true;
     };
   }, []);
 
-  // Fetch user data (level and first name)
   useEffect(() => {
     const fetchUserData = async () => {
       if (!currentUser) {
@@ -92,11 +61,10 @@ export default function DashboardPage() {
       }
 
       try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setUserLevel(userData.level || 'Not set');
-          setFirstName(userData.firstName || currentUser.displayName?.split(' ')[0] || 'Student');
+        const profile = await getProfile(currentUser.uid);
+        if (profile) {
+          setUserLevel(profile.level || 'Not set');
+          setFirstName(profile.firstName || currentUser.displayName?.split(' ')[0] || 'Student');
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -111,245 +79,160 @@ export default function DashboardPage() {
     fetchUserData();
   }, [currentUser]);
 
+  const stats = [
+    {
+      label: 'Level',
+      value: isLoadingLevel ? null : userLevel ? `${userLevel} Level` : 'Not set',
+      icon: GraduationCap,
+      href: '/dashboard/profile',
+      linkLabel: 'View profile',
+    },
+    {
+      label: 'Dues',
+      value: null,
+      icon: Wallet,
+      href: '/dashboard/dues',
+      linkLabel: 'Pay dues',
+    },
+    {
+      label: 'Tutorial Timetable',
+      value: null,
+      icon: Clock,
+      href: '/dashboard/timetable',
+      linkLabel: 'View timetable',
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="pb-5 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isLoadingUser ? (
-            'Dashboard'
-          ) : (
-            `Welcome back, ${firstName}!`
-          )}
+      <div className="border-b border-border pb-5">
+        <h1 className="font-display text-2xl font-bold text-foreground">
+          {isLoadingUser ? 'Dashboard' : `Welcome back, ${firstName}!`}
         </h1>
-        <p className="mt-2 text-sm text-gray-600">Here&apos;s what&apos;s happening with your courses today.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Here&apos;s what&apos;s happening in the department today.
+        </p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                <GraduationCap className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Level</dt>
-                  <dd className="flex items-baseline">
-                    <div className="text-2xl font-semibold text-gray-900">
-                      {isLoadingLevel ? (
-                        <div className="h-8 w-8 animate-pulse bg-gray-200 rounded"></div>
-                      ) : userLevel ? (
-                        `${userLevel} Level`
-                      ) : (
-                        'Not set'
-                      )}
-                    </div>
-                  </dd>
-                </dl>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        {stats.map((stat) => (
+          <div key={stat.label} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-primary p-3">
+                  <stat.icon className="h-6 w-6 text-primary-foreground" aria-hidden="true" />
+                </div>
+                <div className="ml-4 w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-muted-foreground">{stat.label}</p>
+                  {stat.value !== null && (
+                    <p className="text-2xl font-semibold text-foreground">
+                      {stat.value ?? <span className="inline-block h-7 w-10 animate-pulse rounded bg-muted" />}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="bg-gray-50 px-5 py-3">
-            <div className="text-sm">
-              <Link href="/dashboard" className="font-medium text-indigo-600 hover:text-indigo-500">
-                View all
+            <div className="border-t border-border bg-muted/40 px-5 py-3">
+              <Link href={stat.href} className="text-sm font-medium text-secondary hover:text-primary">
+                {stat.linkLabel}
               </Link>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                <CheckCircle className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pay Dues</dt>
-                  {/* <dd className="flex items-baseline">
-                    <div className="text-2xl font-semibold text-gray-900">12</div>
-                  </dd> */}
-                </dl>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 px-5 py-3">
-            <div className="text-sm">
-              <a href="https://v1.virtuobusiness.com/en/student" target="_blank" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Pay Dues
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-yellow-500 rounded-md p-3">
-                <Clock className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Tutorial Timetable</dt>
-                  {/* <dd className="flex items-baseline">
-                    <div className="text-2xl font-semibold text-gray-900">3</div>
-                  </dd> */}
-                </dl>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 px-5 py-3">
-            <div className="text-sm">
-              <a href="https://drive.google.com" target="_blank" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Download
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-red-500 rounded-md p-3">
-                <Bell className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Unread Notifications</dt>
-                  <dd className="flex items-baseline">
-                    <div className="text-2xl font-semibold text-gray-900">{unreadAnnouncements}</div>
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 px-5 py-3">
-            <div className="text-sm">
-              <Link href="/dashboard/notifications" className="font-medium text-indigo-600 hover:text-indigo-500">
-                View all
-              </Link>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Recent Announcements - Full Width */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium text-gray-900">Recent Announcements</h2>
-              <Link 
-                href="/dashboard/announcements" 
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                View all
-              </Link>
-            </div>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {isLoadingAnnouncements ? (
-              <div className="px-4 py-5 sm:p-6 text-center">
-                <div className="animate-pulse space-y-4">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-100 rounded w-full"></div>
-                      <div className="h-3 bg-gray-100 rounded w-1/2"></div>
-                      <div className="h-px bg-gray-100"></div>
-                    </div>
-                  ))}
+      {/* Recent Announcements */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="font-display text-lg font-semibold text-foreground">Recent Announcements</h2>
+          <Link href="/dashboard/announcements" className="text-sm font-medium text-secondary hover:text-primary">
+            View all
+          </Link>
+        </div>
+        <div className="divide-y divide-border">
+          {isLoadingAnnouncements ? (
+            <div className="space-y-4 px-5 py-6">
+              {[1, 2].map((i) => (
+                <div key={i} className="animate-pulse space-y-2">
+                  <div className="h-4 w-3/4 rounded bg-muted" />
+                  <div className="h-3 w-full rounded bg-muted" />
                 </div>
-              </div>
-            ) : announcements.length === 0 ? (
-              <div className="px-4 py-5 sm:p-6 text-center">
-                <p className="text-gray-500">No recent announcements</p>
-              </div>
-            ) : (
-              announcements.slice(0, 3).map((announcement) => (
-                <div key={announcement.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 pt-1">
-                      <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <Bell className="h-5 w-5 text-indigo-600" aria-hidden="true" />
-                      </div>
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900">
-                          {announcement.title}
-                          {announcement.isImportant && (
-                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              Important
-                            </span>
-                          )}
-                        </p>
-                        <div className="text-xs text-gray-500">
-                          {format(announcement.createdAt.toDate(), 'MMM d')}
-                        </div>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-600 line-clamp-2">
-                        {announcement.content}
+              ))}
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="px-5 py-8 text-center text-muted-foreground">No recent announcements</div>
+          ) : (
+            announcements.slice(0, 3).map((announcement) => (
+              <div key={announcement.id} className="px-5 py-4 hover:bg-muted/40">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary/10">
+                    <Bell className="h-4 w-4 text-secondary" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-foreground">
+                        {announcement.title}
+                        {announcement.isImportant && (
+                          <span className="ml-2 bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                            Important
+                          </span>
+                        )}
                       </p>
+                      <span className="flex-shrink-0 text-xs text-muted-foreground">
+                        {format(announcement.createdAt.toDate(), 'MMM d')}
+                      </span>
                     </div>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{announcement.content}</p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Recent Materials */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Materials</h3>
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="font-display text-lg font-semibold text-foreground">Recent Materials</h2>
+          <Link href="/dashboard/materials" className="text-sm font-medium text-secondary hover:text-primary">
+            View all materials <ArrowRight className="inline h-3.5 w-3.5" />
+          </Link>
         </div>
-        <div className="px-4 py-5 sm:p-6">
+        <div className="px-5 py-4">
           {isLoadingMaterials ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-500">Loading materials...</p>
-            </div>
+            <div className="py-4 text-center text-sm text-muted-foreground">Loading materials...</div>
           ) : recentMaterials.length > 0 ? (
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-border">
               {recentMaterials.map((material) => (
-                <li key={material.id} className="py-3">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <FileText className="h-6 w-6 text-gray-400" aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">{material.title}</p>
-                      <p className="text-sm text-gray-500 truncate">
-                        {material.courseCode} • {material.fileType}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">
-                        {material.uploadedAt ? formatDistanceToNow(
-                          material.uploadedAt instanceof Date ? material.uploadedAt : material.uploadedAt.toDate(), 
-                          { addSuffix: true }
-                        ) : 'Unknown date'}
-                      </p>
-                    </div>
+                <li key={material.id} className="flex items-center gap-4 py-3">
+                  <FileText className="h-5 w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{material.title}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {material.courseCode} • {material.fileType}
+                      {material.level ? ` • ${material.level} Level` : ''}
+                    </p>
                   </div>
+                  <p className="flex-shrink-0 text-xs text-muted-foreground">
+                    {material.uploadedAt
+                      ? formatDistanceToNow(
+                          material.uploadedAt instanceof Date ? material.uploadedAt : material.uploadedAt.toDate(),
+                          { addSuffix: true }
+                        )
+                      : 'Unknown date'}
+                  </p>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="px-4 py-12 text-center">
-              <BookOpen className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No materials available</h3>
-              <p className="mt-1 text-sm text-gray-500">Check back later for new materials.</p>
+            <div className="py-8 text-center">
+              <FileText className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
+              <h3 className="mt-2 text-sm font-medium text-foreground">No materials available</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Check back later for new materials.</p>
             </div>
           )}
-        </div>
-        <div className="bg-gray-50 px-4 py-4 sm:px-6">
-          <div className="text-sm">
-            <Link href="/dashboard/materials" className="font-medium text-indigo-600 hover:text-indigo-500">
-              View all materials
-            </Link>
-          </div>
         </div>
       </div>
     </div>

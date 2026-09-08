@@ -1,0 +1,167 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { format } from 'date-fns';
+import { CheckCircle2, Circle, Loader2, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { findDuesRequests, getAllDuesRequests, updateDuesPaymentStatus } from '@/lib/supabase/duesService';
+import { DuesRequest } from '@/types/dues';
+
+const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
+
+export default function AdminDuesPage() {
+  const [requests, setRequests] = useState<DuesRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchMatric, setSearchMatric] = useState('');
+  const [searchReference, setSearchReference] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const loadAll = () => {
+    setLoading(true);
+    getAllDuesRequests()
+      .then(setRequests)
+      .catch((err) => {
+        console.error('Error loading dues requests:', err);
+        toast.error('Failed to load dues requests');
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchMatric.trim() && !searchReference.trim()) {
+      loadAll();
+      return;
+    }
+    setSearching(true);
+    try {
+      const data = await findDuesRequests({ matric: searchMatric, reference: searchReference });
+      setRequests(data);
+    } catch (error) {
+      console.error('Error searching dues requests:', error);
+      toast.error('Search failed');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchMatric('');
+    setSearchReference('');
+    loadAll();
+  };
+
+  const togglePaid = async (request: DuesRequest) => {
+    const next = request.paymentStatus === 'paid' ? 'pending' : 'paid';
+    setUpdatingId(request.id);
+    try {
+      await updateDuesPaymentStatus(request.id, next);
+      setRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, paymentStatus: next } : r)));
+      toast.success(`Marked as ${next}`);
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      toast.error('Failed to update status');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-border pb-5">
+        <h1 className="font-display text-2xl font-bold text-foreground">Dues Records</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Search any student&apos;s payment request by matric number or reference, and mark payments received.
+        </p>
+      </div>
+
+      <form onSubmit={handleSearch} className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchMatric}
+              onChange={(e) => setSearchMatric(e.target.value)}
+              placeholder="Search by matric number"
+              className="pl-10"
+            />
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchReference}
+              onChange={(e) => setSearchReference(e.target.value)}
+              placeholder="Search by reference (NAMSN-XXXXXXXX)"
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <Button type="submit" disabled={searching} className="bg-accent text-accent-foreground hover:bg-accent/90">
+            {searching && <Loader2 className="h-4 w-4 animate-spin" />}
+            Search
+          </Button>
+          <Button type="button" variant="outline" onClick={clearSearch}>
+            Show All
+          </Button>
+        </div>
+      </form>
+
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="px-6 py-12 text-center text-muted-foreground">No dues records found.</div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {requests.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{r.fullName}</p>
+                    <Badge variant="secondary">{r.status}</Badge>
+                    <Badge variant="outline" className="font-mono">{r.reference}</Badge>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                    <span>Matric: {r.matricNumber}</span>
+                    <span>Level: {r.level}</span>
+                    <span>Dues: {formatNaira(r.amount)} + Fee: {formatNaira(r.feeAmount)} = {formatNaira(r.totalAmount)}</span>
+                    <span>{r.email}</span>
+                    <span>{r.phone}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Submitted {format(r.createdAt, 'MMM d, yyyy')}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={updatingId === r.id}
+                  onClick={() => togglePaid(r)}
+                  className={r.paymentStatus === 'paid' ? 'text-primary' : 'text-muted-foreground'}
+                >
+                  {updatingId === r.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : r.paymentStatus === 'paid' ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <Circle className="h-3.5 w-3.5" />
+                  )}
+                  {r.paymentStatus === 'paid' ? 'Paid' : 'Mark as Paid'}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}

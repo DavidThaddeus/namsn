@@ -1,711 +1,401 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { Calendar, Users, Award, BookOpen, Star, ChevronDown, Mail, Phone, MapPin } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ArrowRight, BellRing, BookOpen, CalendarDays, Clock, MapPin, ReceiptText } from 'lucide-react';
+import { format } from 'date-fns';
+import { SiteHeader } from '@/components/site/SiteHeader';
+import { SiteFooter } from '@/components/site/SiteFooter';
+import { ExecutiveCard } from '@/components/site/ExecutiveCard';
+import { ValuesList } from '@/components/site/ValuesList';
+import { AnnouncementCard } from '@/components/site/AnnouncementCard';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { getAnnouncements } from '@/lib/supabase/announcementService';
+import { Announcement } from '@/types/announcement';
+import { getExecutives } from '@/lib/supabase/executiveService';
+import { Executive } from '@/types/executive';
+import { getEvents } from '@/lib/supabase/eventService';
+import { DepartmentEvent } from '@/types/event';
 
-// Navigation Component
-const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
-  return (
-    <header className="fixed w-full z-50 bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex justify-between items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
-          >
-            <Image src="/namsn.png" alt="Logo" width={52} height={52} />
-          </motion.div>
-          <div className="hidden md:flex space-x-8">
-            {['Home', 'Features', 'Team', 'Events', 'Contact'].map((item, index) => (
-              <motion.a
-                key={item}
-                href={`#${item.toLowerCase()}`}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="text-gray-700 hover:text-indigo-600 transition-all duration-300 font-medium relative group"
-              >
-                {item}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 group-hover:w-full"></span>
-              </motion.a>
-            ))}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <Link
-                href="/about"
-                className="text-gray-700 hover:text-indigo-600 transition-all duration-300 font-medium relative group"
-              >
-                About
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 group-hover:w-full"></span>
-              </Link>
-            </motion.div>
-          </div>
-          <div className="flex space-x-4">
-            <Link href={"/auth/login"} className="px-6 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-300 font-medium">
-              Login
-            </Link>
-            <Link href={"/auth/register"} className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-medium mr-2">
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
-    </header>
-  );
-};
-
-const Hero = () => (
-  <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden">
-    <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-50"></div>
-    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM4QjVDRjYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNCIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
-    
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 text-center">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="space-y-8"
-      >
-        {/* Main Heading */}
-        <h1 className="text-4xl md:text-6xl lg:text-6xl font-bold text-gray-900 leading-tight">
-          The Home{" "}
-          <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-teal-600 bg-clip-text text-transparent">
-            Of Future
-          </span> <br />
-          Mathematicians
-        </h1>
-        
-        {/* Subtitle */}
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed"
-        >
-          Mathematics is not just about numbers and theorems. Mathematicians are the bridge between theory and breakthrough.
-        </motion.p>
-        
-        {/* Action Buttons */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6 pt-4"
-        >
-          <motion.a
-            href="/auth/register"
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-10 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:shadow-2xl transform transition-all duration-300 font-semibold text-xl"
-          >
-            Join Now
-          </motion.a>
-          
-          <motion.a
-            href="/auth/register"
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-10 py-5 border-2 border-gray-300 rounded-2xl hover:bg-gray-50 font-semibold text-xl transition-all duration-300 flex items-center space-x-3"
-          >
-            <span>Get Course Materials</span>
-            <motion.div
-              animate={{ y: [0, 4, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              <ChevronDown className="w-6 h-6" />
-            </motion.div>
-          </motion.a>
-        </motion.div>
-        
-        {/* Floating Icons/Elements for Visual Interest */}
-        <div className="absolute top-20 left-10 opacity-20">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full"
-          />
-        </div>
-        
-        <div className="absolute bottom-32 right-16 opacity-20">
-          <motion.div
-            animate={{ y: [-10, 10, -10] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="w-12 h-12 bg-gradient-to-r from-teal-400 to-indigo-400 rounded-xl"
-          />
-        </div>
-      </motion.div>
-    </div>
-  </section>
-);
-
-// Features Section
-const Features = () => {
-  const features = [
-    {
-      icon: <BookOpen className="w-8 h-8" />,
-      title: "Course Materials",
-      description: "Get easy access to course materials",
-      color: "from-blue-500 to-cyan-500"
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "Announcement Access",
-      description: "Get easy access to important announcements and updates",
-      color: "from-green-500 to-emerald-500"
-    },
-    {
-      icon: <Award className="w-8 h-8" />,
-      title: "Payment Portal",
-      description: "Pay your dues easily and securely.",
-      color: "from-purple-500 to-pink-500"
-    },
-    {
-      icon: <Calendar className="w-8 h-8" />,
-      title: "Event Management",
-      description: "Seamless planning and coordination of academic events and activities.",
-      color: "from-orange-500 to-red-500"
-    }
-  ];
-
-  return (
-    <section id="features" className="py-20 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Powerful <span className="text-indigo-600">Features</span>
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Everything you need to modernize your department and enhance educational excellence
-          </p>
-        </motion.div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -10 }}
-              className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
-            >
-              <div className={`w-16 h-16 bg-gradient-to-r ${feature.color} rounded-2xl flex items-center justify-center text-white mb-6`}>
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">{feature.title}</h3>
-              <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// Team Section
-const Team = () => {
-  const teamMembers = [
-    {
-      name: "Olojede Abisola",
-      role: "President",
-      image: "/prof.jpg",
-      bio: "Leads the department, oversees activities, and represents students in official matters"
-    },
-    {
-      name: "Olutade Akorede",
-      role: "Vice President",
-      image: "/korede.jpg",
-      bio: "Assists the president and takes charge in their absence."
-    },
-    {
-      name: "Abdulazeez Ridwan",
-      role: "General Secretary",
-      image: "/arridoh.jpg",
-      bio: "Coordinates department activities, manages records, and ensures smooth operations."
-    },
-    {
-      name: "Adegbenro Mustapha",
-      role: "Asst. General Secretary",
-      image: "/kudus.jpg",
-      bio: "Supports the secretary and fills in when needed."
-    },
-    {
-      name: "Mercy Osatofo",
-      role: "Welfare Director",
-      image: "/mercy.jpg",
-      bio: "Coordinates welfare activities and ensures student well-being."
-    },
-    {
-      name: "Oyenola Philip",
-      role: "Financial Secretary",
-      image: "/philip.jpg",
-      bio: "Coordinates financial activities and ensures proper management of funds."
-    },
-    {
-      name: "Ajayi Alice",
-      role: "Treasurer",
-      image: "/alice.jpg",
-      bio: "Coordinates financial activities and ensures proper management of funds."
-    },
-    {
-      name: "Olabode Goodness",
-      role: "P.R.O 1",
-      image: "/ogd.jpg",
-      bio: "Handles communication, publicity, and external relations."
-    },
-    {
-      name: "Lelile Oriade",
-      role: "Sport Director",
-      image: "/kendo.jpg",
-      bio: "Coordinates sporting activities and competitions."
-    },
-    {
-      name: "Onadairo Johnson",
-      role: "Libarian",
-      image: "/hammed.jpg",
-      bio: "Manages academic materials, books, and resources."
-    },
-    {
-      name: "Adetoye Martins",
-      role: "Social Director",
-      image: "/fawas.jpg",
-      bio: "Organizes social events and programs."
-    },
-    {
-      name: "Bankole Isreal",
-      role: "P.R.O 2",
-      image: "/samod.jpg",
-      bio: "Assists P.R.O. 1 in publicity and student communication."
-    }
-  ];
-
-  return (
-    <section id="team" className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Meet Our <span className="text-indigo-600">Team</span>
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Team ExcelSheOr - A female-led journey of divine excellence
-          </p>
-        </motion.div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {teamMembers.map((member, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -10 }}
-              className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 text-center group"
-            >
-              <div className="relative mb-6">
-                <img
-                  src={member.image}
-                  alt={member.name}
-                  className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg group-hover:scale-110 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{member.name}</h3>
-              <p className="text-indigo-600 font-medium mb-4">{member.role}</p>
-              <p className="text-gray-600 text-sm leading-relaxed">{member.bio}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// Events Section
-const Events = () => {
-  const upcomingEvents = [
-    {
-      date: "Sep 15",
-      title: "Academic Excellence Summit",
-      time: "9:00 AM - 5:00 PM",
-      location: "Main Auditorium",
-      type: "Conference",
-      color: "from-blue-500 to-indigo-500"
-    },
-    {
-      date: "Sep 22",
-      title: "Student Orientation Program",
-      time: "10:00 AM - 2:00 PM",
-      location: "Campus Center",
-      type: "Orientation",
-      color: "from-green-500 to-emerald-500"
-    },
-    {
-      date: "Sep 28",
-      title: "Faculty Development Workshop",
-      time: "2:00 PM - 6:00 PM",
-      location: "Conference Room A",
-      type: "Workshop",
-      color: "from-purple-500 to-pink-500"
-    },
-    {
-      date: "Oct 05",
-      title: "Research Symposium",
-      time: "9:00 AM - 4:00 PM",
-      location: "Science Building",
-      type: "Symposium",
-      color: "from-orange-500 to-red-500"
-    }
-  ];
-
-  return (
-    <section id="events" className="py-20 bg-gradient-to-br from-indigo-50 to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Upcoming <span className="text-indigo-600">Events</span>
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Stay connected with the latest academic events, workshops, and department activities
-          </p>
-        </motion.div>
-        
-        <div className="grid md:grid-cols-2 gap-8">
-          {upcomingEvents.map((event, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-              className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
-            >
-              <div className="flex items-start space-x-4">
-                <div className={`flex-shrink-0 w-16 h-16 bg-gradient-to-r ${event.color} rounded-2xl flex flex-col items-center justify-center text-white font-bold`}>
-                  <div className="text-xs">{event.date.split(' ')[0]}</div>
-                  <div className="text-lg">{event.date.split(' ')[1]}</div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className={`px-3 py-1 bg-gradient-to-r ${event.color} text-white text-xs font-medium rounded-full`}>
-                      {event.type}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{event.title}</h3>
-                  <div className="space-y-2 text-gray-600">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{event.time}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{event.location}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mt-12"
-        >
-          <button className="px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors duration-300 font-medium">
-            View All Events
-          </button>
-        </motion.div>
-      </div>
-    </section>
-  );
-};
-
-// Statistics Section
-const Statistics = () => {
-  const stats = [
-    { number: "5,000+", label: "Students Served", icon: <Users className="w-8 h-8" /> },
-    { number: "95%", label: "Satisfaction Rate", icon: <Star className="w-8 h-8" /> },
-    { number: "200+", label: "Faculty Members", icon: <Award className="w-8 h-8" /> },
-    { number: "50+", label: "Courses Offered", icon: <BookOpen className="w-8 h-8" /> }
-  ];
-
-  return (
-    <section className="py-20 bg-gradient-to-r from-indigo-600 to-purple-600">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-4 gap-8">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="text-center text-white"
-            >
-              <div className="mb-4 flex justify-center text-white/80">
-                {stat.icon}
-              </div>
-              <div className="text-4xl font-bold mb-2">{stat.number}</div>
-              <div className="text-lg text-white/90">{stat.label}</div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// About Section
-const About = () => (
-  <section id="about" className="py-20 bg-white">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="grid md:grid-cols-2 gap-12 items-center">
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            About Our <span className="text-indigo-600">Department</span>
-          </h2>
-          <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-          Mathematics is a subject of varied features ranging from intrinsic beauty to its usefulness with wide-scope of applications in Science, Engineering, Technology and Social Sciences. This Mathematics programme is designed for students who are interested in these features. The curriculum has been carefully planned to equip students with a broad knowledge from various aspects of Mathematics.
-          </p>
-          <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-          The curriculum has been carefully planned to assist the students to specialize according to their own aptitude in Pure Mathematics or in any area of Applied Mathematics. The main goals of the programme are:
-          </p>
-          <div className="space-y-4">
-            {["To train professional Mathematicians to reason rigorously and logically.", "To train graduates who are not only qualified in the core subjects but have a good overall ability in the applied mathematics.", "To train Mathematicians to pursue the study of scientific and technological problems"].map((item, index) => (
-              <div key={index} className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
-                <span className="text-gray-700 font-medium">{item}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          className="relative"
-        >
-          <div className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl p-8">
-            <img
-              src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop"
-              alt="Department Building"
-              className="rounded-2xl shadow-xl w-full h-80 object-cover"
-            />
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  </section>
-);
-
-// Contact Section
-const Contact = () => (
-  <section id="contact" className="py-20 bg-gray-900 text-white">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center mb-16"
-      >
-        <h2 className="text-4xl md:text-5xl font-bold mb-6">
-          Get In <span className="text-indigo-400">Touch</span>
-        </h2>
-        <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-          Get in touch with us if you have any questions or inquiries.
-        </p>
-      </motion.div>
-      
-      <div className="grid md:grid-cols-2 gap-12">
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          className="space-y-8"
-        >
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center">
-              <Mail className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Email Us</h3>
-              <p className="text-gray-300">contact@namsnfunaab.com</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center">
-              <Phone className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Call Us</h3>
-              <p className="text-gray-300">+234 812 345 6789</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center">
-              <MapPin className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Visit Us</h3>
-              <p className="text-gray-300">123 Education Ave, Academic City</p>
-            </div>
-          </div>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          className="bg-gray-800 rounded-2xl p-8"
-        >
-          <form className="space-y-6">
-            <div>
-              <input
-                type="text"
-                placeholder="Your Name"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-gray-400"
-              />
-            </div>
-            <div>
-              <input
-                type="email"
-                placeholder="Your Email"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-gray-400"
-              />
-            </div>
-            <div>
-              <textarea
-                placeholder="Your Message"
-                rows={4}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-gray-400 resize-none"
-              ></textarea>
-            </div>
-            <button
-              type="submit"
-              className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-medium"
-            >
-              Send Message
-            </button>
-          </form>
-        </motion.div>
-      </div>
-    </div>
-  </section>
-);
-
-// Footer
-const Footer = () => (
-  <footer className="bg-gray-900 text-white py-12 border-t border-gray-800">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="grid md:grid-cols-4 gap-8">
-        <div>
-          <div className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent mb-4">
-            Namsn
-          </div>
-          <p className="text-gray-400">
-            Empowering education through innovative technology solutions.
-          </p>
-        </div>
-        
-        <div>
-          <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-          <div className="space-y-2">
-            {['Home', 'About', 'Features', 'Team', 'Events'].map((link) => (
-              <a key={link} href={`/${link.toLowerCase()}`} className="block text-gray-400 hover:text-white transition-colors">
-                {link}
-              </a>
-            ))}
-          </div>
-        </div>
-        
-        <div>
-          <h4 className="text-lg font-semibold mb-4">Services</h4>
-          <div className="space-y-2">
-            {['Student Management', 'Faculty Portal', 'Analytics', 'Support'].map((service) => (
-              <div key={service} className="text-gray-400">{service}</div>
-            ))}
-          </div>
-        </div>
-        
-        <div>
-          <h4 className="text-lg font-semibold mb-4">Contact</h4>
-          <div className="space-y-2 text-gray-400">
-            <p>support@namsnfunaab.com</p>
-            <p>+234 812 345 6789</p>
-          </div>
-        </div>
-      </div>
-      
-      <div className="border-t border-gray-800 mt-8 pt-8">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-400 text-sm">
-            © 2025 Team ExcelSheOr. All rights reserved.
-          </p>
-          <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Privacy Policy
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Terms of Service
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Cookie Policy
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </footer>
-);
-
+const offerings = [
+  {
+    icon: BookOpen,
+    title: 'Course Materials',
+    description: 'Browse and download lecture materials organized by level and course.',
+    href: '/auth/login',
+  },
+  {
+    icon: BellRing,
+    title: 'Announcements',
+    description: 'Stay current with departmental notices, deadlines, and updates.',
+    href: '/announcements',
+  },
+  {
+    icon: ReceiptText,
+    title: 'Dues & Receipts',
+    description: 'Pay departmental dues and keep verifiable digital receipts on record.',
+    href: '/auth/login',
+  },
+  {
+    icon: CalendarDays,
+    title: 'Events',
+    description: 'Track orientation programs, symposiums, and departmental activities.',
+    href: '/events',
+  },
+];
 
 export default function Home() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [events, setEvents] = useState<DepartmentEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [executives, setExecutives] = useState<Executive[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAnnouncements(3)
+      .then((data) => {
+        if (!cancelled) setAnnouncements(data);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getEvents()
+      .then((data) => {
+        if (!cancelled) setEvents(data.slice(0, 4));
+      })
+      .catch((err) => console.error('Error loading events:', err))
+      .finally(() => {
+        if (!cancelled) setEventsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getExecutives()
+      .then((data) => {
+        if (!cancelled) setExecutives(data);
+      })
+      .catch((err) => console.error('Error loading executives:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Arriving here from another page with a #hash (e.g. the "Executives" nav
+  // link) loads the page and then jumps to the anchor instantly — browsers
+  // don't apply `scroll-behavior: smooth` to that initial fragment scroll.
+  // Do it manually so it's smooth from any entry point, not just in-page clicks.
+  useEffect(() => {
+    if (!window.location.hash) return;
+    const id = window.location.hash.slice(1);
+    const timer = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <main className="min-h-screen">
-      <Navbar />
-      <Hero />
-      <About />
-      <Features />
-      <Events />
-      <Team />
-      <Contact />
-      <Footer />
-    </main>
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+
+      <main className="flex-1">
+        {/* Hero */}
+        <section className="relative flex min-h-[600px] items-center overflow-hidden sm:min-h-[680px] lg:min-h-[760px]">
+          <Image
+            src="/mtsimage1.jpg"
+            alt="NAMSN students gathered at the FUNAAB campus gate"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/30" />
+
+          <div className="relative mx-auto max-w-5xl px-4 py-20 text-center sm:px-6 lg:px-8">
+            <p className="font-display text-sm font-semibold uppercase tracking-widest text-white">
+              Department of Mathematics, FUNAAB
+            </p>
+            <h1 className="font-display mt-4 text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
+              The Home <span className="text-accent">Of Future</span>
+              <br />
+              Mathematicians
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/85">
+              Mathematics is not just about numbers and theorems. Mathematicians are the bridge
+              between theory and breakthrough.
+            </p>
+            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Button
+                size="lg"
+                asChild
+                className="relative overflow-hidden bg-accent text-accent-foreground before:absolute before:inset-0 before:origin-right before:scale-x-0 before:bg-white before:transition-transform before:duration-300 before:ease-out hover:bg-accent hover:before:scale-x-100"
+              >
+                <Link href="/auth/login">
+                  <span className="relative z-10 flex items-center gap-2">
+                    Student Login <ArrowRight className="h-4 w-4" />
+                  </span>
+                </Link>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="rounded-none border-white bg-white/10 text-white backdrop-blur-sm transition-transform duration-200 hover:scale-105 hover:bg-white/10 hover:text-white"
+              >
+                <Link href="/auth/login">Get Course Materials</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* About */}
+        <section id="about" className="scroll-mt-20 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid items-center gap-12 md:grid-cols-2">
+              <div>
+                <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
+                  About Our Department
+                </h2>
+                <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+                  Mathematics is a subject of varied features ranging from intrinsic beauty to its
+                  usefulness with wide-scope of applications in Science, Engineering, Technology
+                  and Social Sciences. This Mathematics programme is designed for students who are
+                  interested in these features. The curriculum has been carefully planned to
+                  equip students with a broad knowledge from various aspects of Mathematics.
+                </p>
+                <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+                  The curriculum has been carefully planned to assist the students to specialize
+                  according to their own aptitude in Pure Mathematics or in any area of Applied
+                  Mathematics.
+                </p>
+              </div>
+              <div className="rounded-3xl bg-muted p-8">
+                <div className="relative h-80 w-full overflow-hidden rounded-2xl shadow-xl">
+                  <Image
+                    src="/mtsimage2.jpg"
+                    alt="NAMSN students on a department excursion at Olumo Rock"
+                    fill
+                    sizes="(min-width: 768px) 50vw, 100vw"
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-16">
+              <h3 className="font-display text-center text-2xl font-bold text-foreground">
+                Mission, Vision &amp; Values
+              </h3>
+              <div className="mt-6">
+                <ValuesList />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Offerings */}
+        <section className="bg-muted/40 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="font-display text-3xl font-bold text-foreground">
+                Everything the department runs on
+              </h2>
+              <p className="mt-3 text-muted-foreground">
+                One platform for the day-to-day of departmental life.
+              </p>
+            </div>
+            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {offerings.map((item) => {
+                const content = (
+                  <>
+                    <div className="flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground">
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="font-display mt-4 text-lg font-semibold text-foreground">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {item.description}
+                    </p>
+                  </>
+                );
+
+                if (!item.href) {
+                  return (
+                    <div key={item.title} className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                      {content}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.title}
+                    href={item.href}
+                    className="cursor-pointer rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+                  >
+                    {content}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Events */}
+        <section className="py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="font-display text-3xl font-bold text-foreground">Upcoming Events</h2>
+                <p className="mt-2 text-muted-foreground">
+                  Symposiums, orientation programs, and departmental activities.
+                </p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/events">
+                  View all events <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
+              {eventsLoading &&
+                [0, 1].map((i) => (
+                  <div key={i} className="h-32 animate-pulse rounded-xl border border-border bg-muted/50" />
+                ))}
+
+              {!eventsLoading && events.length === 0 && (
+                <p className="col-span-2 text-sm text-muted-foreground">
+                  No upcoming events — check back soon.
+                </p>
+              )}
+
+              {!eventsLoading &&
+                events.map((event) => (
+                <div
+                  key={event.id}
+                  className="group flex cursor-pointer gap-4 rounded-xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md"
+                >
+                  <div className="flex h-16 w-16 flex-shrink-0 flex-col items-center justify-center bg-primary text-primary-foreground transition-colors duration-200 group-hover:bg-accent group-hover:text-accent-foreground">
+                    <span className="text-xs font-medium">{format(event.date.toDate(), 'MMM')}</span>
+                    <span className="text-lg font-bold">{format(event.date.toDate(), 'd')}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Badge variant="secondary" className="mb-2">
+                      {event.tag}
+                    </Badge>
+                    <h3 className="font-display text-lg font-semibold text-foreground">{event.title}</h3>
+                    <div className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 flex-shrink-0" />
+                        <span>{event.time}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 flex-shrink-0" />
+                        <span>{event.venue}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Executives */}
+        <section id="executives" className="scroll-mt-20 bg-muted/40 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="font-display text-3xl font-bold text-foreground">Executive Council</h2>
+              <p className="mt-3 text-muted-foreground">
+                The current NAMSN FUNAAB executive council.
+              </p>
+            </div>
+            <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {executives.map((member) => (
+                <ExecutiveCard key={member.id} name={member.name} role={member.role} bio={member.bio} image={member.imageUrl} />
+              ))}
+            </div>
+            <div className="mt-12 text-center">
+              <Button
+                size="lg"
+                asChild
+                className="relative overflow-hidden bg-accent text-accent-foreground before:absolute before:inset-0 before:origin-right before:scale-x-0 before:bg-white before:transition-transform before:duration-300 before:ease-out hover:bg-accent hover:before:scale-x-100"
+              >
+                <Link href="/staff">
+                  <span className="relative z-10 flex items-center gap-2">
+                    Meet the Lecturers <ArrowRight className="h-4 w-4" />
+                  </span>
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Announcements */}
+        <section className="py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="font-display text-3xl font-bold text-foreground">
+                  Latest Announcements
+                </h2>
+                <p className="mt-2 text-muted-foreground">
+                  Recent notices from the department and executive council.
+                </p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/announcements">
+                  View all <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="mt-10 grid gap-6 lg:grid-cols-3">
+              {loading &&
+                [0, 1, 2].map((i) => (
+                  <div key={i} className="h-40 animate-pulse rounded-xl border border-border bg-muted/50" />
+                ))}
+
+              {!loading && error && (
+                <p className="col-span-3 text-sm text-muted-foreground">
+                  Announcements are temporarily unavailable. Please check back shortly.
+                </p>
+              )}
+
+              {!loading && !error && announcements.length === 0 && (
+                <p className="col-span-3 text-sm text-muted-foreground">
+                  No announcements have been posted yet.
+                </p>
+              )}
+
+              {!loading &&
+                !error &&
+                announcements.map((a) => <AnnouncementCard key={a.id} announcement={a} />)}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <SiteFooter />
+    </div>
   );
 }

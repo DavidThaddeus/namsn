@@ -1,4 +1,7 @@
-import { Timestamp } from 'firebase/firestore';
+import { TimestampLike } from './announcement';
+
+export type MaterialLevel = '100' | '200' | '300' | '400';
+export type MaterialType = 'material' | 'past_question';
 
 export interface Material {
   id: string;
@@ -8,7 +11,10 @@ export interface Material {
   fileUrl: string;
   fileType: string;
   fileSize: string;
-  uploadedAt: Date | Timestamp;
+  level?: MaterialLevel;
+  type?: MaterialType;
+  folderId?: string;
+  uploadedAt: Date | TimestampLike;
 }
 
 export interface CreateMaterialDto {
@@ -18,6 +24,9 @@ export interface CreateMaterialDto {
   fileUrl: string;
   fileType: string;
   fileSize: string;
+  level?: MaterialLevel;
+  type?: MaterialType;
+  folderId?: string;
 }
 
 export interface UpdateMaterialDto {
@@ -27,4 +36,7 @@ export interface UpdateMaterialDto {
   fileUrl?: string;
   fileType?: string;
   fileSize?: string;
+  level?: MaterialLevel;
+  type?: MaterialType;
+  folderId?: string;
 }

@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Source_Serif_4, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from 'react-hot-toast';
+import { BackToTop } from "@/components/site/BackToTop";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sourceSerif = Source_Serif_4({
+  variable: "--font-display",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Namsn - The Home Of Mathematicians",
-  description: "Namsn - The Home Of Mathematicians",
+  title: "NAMSN FUNAAB — National Association of Mathematics Students",
+  description:
+    "National Association of Mathematics Students of Nigeria (NAMSN), FUNAAB chapter — Department of Mathematics, Federal University of Agriculture, Abeokuta.",
 };
 
 export default function RootLayout({
@@ -27,11 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${sourceSerif.variable} ${inter.variable} font-sans antialiased`}
       >
         <AuthProvider>
           {children}
           <Toaster position="top-center" />
+          <BackToTop />
         </AuthProvider>
       </body>
     </html>

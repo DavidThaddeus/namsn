@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Copy, Loader2, Receipt, Search, Wallet } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Receipt, Search, Wallet, XCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/config';
 import { Button } from '@/components/ui/button';
@@ -32,8 +33,9 @@ const SERVICE_FEE = 150;
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
-export default function DuesPage() {
+function DuesPageContent() {
   const { currentUser } = useAuth();
+  const searchParams = useSearchParams();
 
   const [form, setForm] = useState({
     fullName: '',
@@ -52,7 +54,29 @@ export default function DuesPage() {
   const [searched, setSearched] = useState(false);
   const [results, setResults] = useState<DuesRequest[]>([]);
 
+  const [paymentReturn, setPaymentReturn] = useState<'paid' | 'cancelled' | null>(null);
+  const [paymentReturnRequest, setPaymentReturnRequest] = useState<DuesRequest | null>(null);
+  const [checkingPaymentReturn, setCheckingPaymentReturn] = useState(false);
+
   const { status, amount } = LEVEL_INFO[form.level];
+
+  useEffect(() => {
+    const paid = searchParams.get('paid');
+    const cancelled = searchParams.get('cancelled');
+    const reference = searchParams.get('reference');
+
+    if (paid === '1' && reference) {
+      setPaymentReturn('paid');
+      setCheckingPaymentReturn(true);
+      findDuesRequests({ reference })
+        .then((data) => setPaymentReturnRequest(data[0] || null))
+        .catch((err) => console.error('Error checking payment status:', err))
+        .finally(() => setCheckingPaymentReturn(false));
+    } else if (cancelled === '1') {
+      setPaymentReturn('cancelled');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,6 +165,44 @@ export default function DuesPage() {
           Pay your departmental dues and find your payment records.
         </p>
       </div>
+
+      {paymentReturn === 'paid' && (
+        <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-5">
+          {checkingPaymentReturn ? (
+            <Loader2 className="mt-0.5 h-5 w-5 flex-shrink-0 animate-spin text-primary" />
+          ) : (
+            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+          )}
+          <div>
+            <p className="font-medium text-foreground">
+              {checkingPaymentReturn
+                ? 'Checking your payment...'
+                : paymentReturnRequest?.paymentStatus === 'paid'
+                  ? 'Payment confirmed!'
+                  : 'Payment received — confirming shortly'}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {checkingPaymentReturn
+                ? 'One moment while we confirm this with Bachs.'
+                : paymentReturnRequest?.paymentStatus === 'paid'
+                  ? `Thank you — your ${paymentReturnRequest.status.toLowerCase()} dues (${formatNaira(paymentReturnRequest.totalAmount)}) have been received.`
+                  : "Your payment went through on Bachs' side, but we haven't confirmed it in our records yet — this usually takes a few seconds. Search your reference below to check again."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {paymentReturn === 'cancelled' && (
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-5">
+          <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive" />
+          <div>
+            <p className="font-medium text-foreground">Payment cancelled</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              No charge was made. You can search your reference below or submit a new request to try again.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Pay Dues — prominent, at the top */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
@@ -367,5 +429,19 @@ export default function DuesPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function DuesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <DuesPageContent />
+    </Suspense>
   );
 }

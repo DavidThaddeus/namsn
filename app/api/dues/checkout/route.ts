@@ -59,7 +59,11 @@ export async function POST(req: NextRequest) {
       successUrl: `${origin}/dashboard/dues?paid=1&reference=${dues.reference}`,
       cancelUrl: `${origin}/dashboard/dues?cancelled=1`,
       metadata: { dues_request_id: dues.id },
-      idempotencyKey: dues.reference,
+      // A fresh key per attempt, not dues.reference — that never changes for
+      // this invoice, so reusing it as the idempotency key meant any retry
+      // after the first checkout session expired (60 min) got rejected as a
+      // conflict instead of just starting a new one.
+      idempotencyKey: crypto.randomUUID(),
       // Destination split (department account) is added once the connected
       // account exists — see Phase 4 step 15. Full amount goes to the
       // platform account for now.

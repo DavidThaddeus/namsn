@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { submitDuesRequest, findDuesRequests } from '@/lib/supabase/duesService';
+import { submitDuesRequest, findDuesRequests, searchDuesRequests } from '@/lib/supabase/duesService';
 import { DuesLevel, DuesRequest, StudentStatus } from '@/types/dues';
 import { format } from 'date-fns';
 
@@ -31,6 +31,11 @@ const LEVEL_INFO: Record<DuesLevel, { status: StudentStatus; amount: number }> =
 
 // Flat processing fee added on top of dues at the actual payment step.
 const SERVICE_FEE = 150;
+
+// How long to keep auto-checking for the webhook to confirm a payment
+// before giving up and telling the student to check back later.
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 120000;
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
@@ -49,15 +54,16 @@ function DuesPageContent() {
   const [submittedRequest, setSubmittedRequest] = useState<DuesRequest | null>(null);
   const [payingNow, setPayingNow] = useState(false);
 
-  const [searchMatric, setSearchMatric] = useState('');
-  const [searchReference, setSearchReference] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [results, setResults] = useState<DuesRequest[]>([]);
 
   const [paymentReturn, setPaymentReturn] = useState<'paid' | 'cancelled' | null>(null);
   const [paymentReturnRequest, setPaymentReturnRequest] = useState<DuesRequest | null>(null);
-  const [checkingPaymentReturn, setCheckingPaymentReturn] = useState(false);
+  const [pollTimedOut, setPollTimedOut] = useState(false);
+  const pollStartedAt = useRef<number | null>(null);
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { status, amount } = LEVEL_INFO[form.level];
 
@@ -68,14 +74,32 @@ function DuesPageContent() {
 
     if (paid === '1' && reference) {
       setPaymentReturn('paid');
-      setCheckingPaymentReturn(true);
-      findDuesRequests({ reference })
-        .then((data) => setPaymentReturnRequest(data[0] || null))
-        .catch((err) => console.error('Error checking payment status:', err))
-        .finally(() => setCheckingPaymentReturn(false));
+      pollStartedAt.current = Date.now();
+
+      const poll = () => {
+        findDuesRequests({ reference })
+          .then((data) => {
+            const record = data[0] || null;
+            setPaymentReturnRequest(record);
+            if (record?.paymentStatus === 'paid') return; // stop polling
+
+            const elapsed = Date.now() - (pollStartedAt.current || Date.now());
+            if (elapsed >= POLL_TIMEOUT_MS) {
+              setPollTimedOut(true);
+              return;
+            }
+            pollTimer.current = setTimeout(poll, POLL_INTERVAL_MS);
+          })
+          .catch((err) => console.error('Error checking payment status:', err));
+      };
+      poll();
     } else if (cancelled === '1') {
       setPaymentReturn('cancelled');
     }
+
+    return () => {
+      if (pollTimer.current) clearTimeout(pollTimer.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -142,12 +166,12 @@ function DuesPageContent() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchMatric.trim() && !searchReference.trim()) return;
+    if (!searchQuery.trim()) return;
 
     setSearching(true);
     setSearched(false);
     try {
-      const data = await findDuesRequests({ matric: searchMatric, reference: searchReference });
+      const data = await searchDuesRequests(searchQuery);
       setResults(data);
       setSearched(true);
     } catch (error) {
@@ -169,32 +193,32 @@ function DuesPageContent() {
 
       {paymentReturn === 'paid' && (
         <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-5">
-          {checkingPaymentReturn ? (
-            <Loader2 className="mt-0.5 h-5 w-5 flex-shrink-0 animate-spin text-primary" />
-          ) : (
+          {paymentReturnRequest?.paymentStatus === 'paid' ? (
             <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+          ) : (
+            <Loader2 className="mt-0.5 h-5 w-5 flex-shrink-0 animate-spin text-primary" />
           )}
           <div>
             <p className="font-medium text-foreground">
-              {checkingPaymentReturn
-                ? 'Checking your payment...'
-                : paymentReturnRequest?.paymentStatus === 'paid'
-                  ? 'Payment confirmed!'
-                  : 'Payment received — confirming shortly'}
+              {paymentReturnRequest?.paymentStatus === 'paid'
+                ? 'Payment successful!'
+                : pollTimedOut
+                  ? 'Still confirming...'
+                  : 'Confirming your payment...'}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {checkingPaymentReturn
-                ? 'One moment while we confirm this with Bachs.'
-                : paymentReturnRequest?.paymentStatus === 'paid'
-                  ? `Thank you — your ${paymentReturnRequest.status.toLowerCase()} dues (${formatNaira(paymentReturnRequest.totalAmount)}) have been received.`
-                  : "Your payment went through on Bachs' side, but we haven't confirmed it in our records yet — this usually takes a few seconds. Search your reference below to check again."}
+              {paymentReturnRequest?.paymentStatus === 'paid'
+                ? `Thank you — your ${paymentReturnRequest.status.toLowerCase()} dues (${formatNaira(paymentReturnRequest.amount)}) have been received.`
+                : pollTimedOut
+                  ? "This is taking longer than usual. Your payment may still be processing on Bachs' side — search your reference below in a bit, or contact the department if this doesn't clear up."
+                  : "Your payment went through on Bachs' side — we're just waiting for confirmation to land in our records. This page will update automatically, no need to refresh."}
             </p>
             {paymentReturnRequest?.paymentStatus === 'paid' && (
               <Link
                 href={`/dashboard/dues/receipt/${paymentReturnRequest.reference}`}
-                className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-2"
+                className="mt-3 inline-flex items-center gap-1.5 bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent/90"
               >
-                View Receipt
+                <Receipt className="h-4 w-4" /> Download Receipt
               </Link>
             )}
           </div>
@@ -213,7 +237,83 @@ function DuesPageContent() {
         </div>
       )}
 
-      {/* Pay Dues — prominent, at the top */}
+      {/* Find receipt / invoice — at the top, this is what most returning visitors want */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center bg-secondary text-secondary-foreground">
+            <Receipt className="h-5 w-5" />
+          </div>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Find Your Receipt, Invoice, or Dues Status
+          </h2>
+        </div>
+
+        <form onSubmit={handleSearch} className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Matric number or reference (NAMSN-XXXXXXXX)"
+              className="pl-10"
+            />
+          </div>
+          <Button type="submit" variant="outline" disabled={searching} className="sm:w-fit">
+            {searching && <Loader2 className="h-4 w-4 animate-spin" />}
+            Search
+          </Button>
+        </form>
+
+        {searched && (
+          <div className="mt-5">
+            {results.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No record found. Once you submit a payment request below, it will show up here.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {results.map((r) => (
+                  <div key={r.id} className="rounded-lg border border-border bg-muted/40 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-foreground">{r.fullName}</p>
+                      <Badge variant="secondary">{r.status}</Badge>
+                    </div>
+                    <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+                      <span className="font-mono">Ref: {r.reference}</span>
+                      <span>Matric: {r.matricNumber}</span>
+                      <span>Level: {r.level}</span>
+                      <span>Amount to pay: {formatNaira(r.totalAmount)}</span>
+                      <span className="capitalize">Payment status: {r.paymentStatus}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        Submitted {format(r.createdAt, 'MMM d, yyyy')}
+                      </p>
+                      {r.paymentStatus === 'paid' ? (
+                        <Link
+                          href={`/dashboard/dues/receipt/${r.reference}`}
+                          className="text-xs font-medium text-primary underline underline-offset-2"
+                        >
+                          View Receipt
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/dashboard/dues/invoice/${r.reference}`}
+                          className="text-xs font-medium text-primary underline underline-offset-2"
+                        >
+                          View Invoice
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Pay Dues */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center bg-primary text-primary-foreground">
@@ -273,7 +373,7 @@ function DuesPageContent() {
               <Copy className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
             <p className="text-xs text-muted-foreground">
-              Save this reference — use it below (or your matric number) to find this request later.
+              Save this reference — use it above (or your matric number) to find this request later.
             </p>
             <Button variant="outline" onClick={() => setSubmittedRequest(null)}>
               Submit another request
@@ -359,106 +459,10 @@ function DuesPageContent() {
               {submitting ? 'Submitting...' : `Submit Payment Request — ${formatNaira(amount)}`}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Online payment processing isn&apos;t live yet — submitting records your request so the
-              department has it on file.
+              Submitting creates your invoice — you&apos;ll be able to pay online right away.
             </p>
           </form>
         )}
-      </div>
-
-      {/* Find receipt / invoice — in-page, not an external link */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center bg-secondary text-secondary-foreground">
-            <Receipt className="h-5 w-5" />
-          </div>
-          <h2 className="font-display text-lg font-semibold text-foreground">
-            Find Your Receipt, Invoice, or Dues Status
-          </h2>
-        </div>
-
-        <form onSubmit={handleSearch} className="mt-6 flex flex-col gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchMatric}
-                onChange={(e) => setSearchMatric(e.target.value)}
-                placeholder="Your matric number"
-                className="pl-10"
-              />
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchReference}
-                onChange={(e) => setSearchReference(e.target.value)}
-                placeholder="Or your reference (NAMSN-XXXXXXXX)"
-                className="pl-10"
-              />
-            </div>
-          </div>
-          <Button type="submit" variant="outline" disabled={searching} className="sm:w-fit">
-            {searching && <Loader2 className="h-4 w-4 animate-spin" />}
-            Search
-          </Button>
-        </form>
-
-        {searched && (
-          <div className="mt-5">
-            {results.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No record found. Once you submit a payment request above, it will show up here.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {results.map((r) => (
-                  <div key={r.id} className="rounded-lg border border-border bg-muted/40 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-foreground">{r.fullName}</p>
-                      <Badge variant="secondary">{r.status}</Badge>
-                    </div>
-                    <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
-                      <span className="font-mono">Ref: {r.reference}</span>
-                      <span>Matric: {r.matricNumber}</span>
-                      <span>Level: {r.level}</span>
-                      <span>Amount to pay: {formatNaira(r.totalAmount)}</span>
-                      <span className="capitalize">Payment status: {r.paymentStatus}</span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">
-                        Submitted {format(r.createdAt, 'MMM d, yyyy')}
-                      </p>
-                      {r.paymentStatus === 'paid' ? (
-                        <Link
-                          href={`/dashboard/dues/receipt/${r.reference}`}
-                          className="text-xs font-medium text-primary underline underline-offset-2"
-                        >
-                          View Receipt
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`/dashboard/dues/invoice/${r.reference}`}
-                          className="text-xs font-medium text-primary underline underline-offset-2"
-                        >
-                          View Invoice
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-xl border border-dashed border-border bg-muted/40 p-5">
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Coming soon:</span> live online payment
-          processing, official digital receipts, and QR verification. For now this page records
-          your request and lets you look up its status.
-        </p>
       </div>
     </div>
   );

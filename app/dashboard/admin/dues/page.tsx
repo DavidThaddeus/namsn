@@ -8,7 +8,7 @@ import { CheckCircle2, Circle, Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { findDuesRequests, getAllDuesRequests, updateDuesPaymentStatus } from '@/lib/supabase/duesService';
+import { searchDuesRequests, getAllDuesRequests, updateDuesPaymentStatus } from '@/lib/supabase/duesService';
 import { DuesRequest } from '@/types/dues';
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
@@ -16,8 +16,7 @@ const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 export default function AdminDuesPage() {
   const [requests, setRequests] = useState<DuesRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchMatric, setSearchMatric] = useState('');
-  const [searchReference, setSearchReference] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -38,13 +37,13 @@ export default function AdminDuesPage() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchMatric.trim() && !searchReference.trim()) {
+    if (!searchQuery.trim()) {
       loadAll();
       return;
     }
     setSearching(true);
     try {
-      const data = await findDuesRequests({ matric: searchMatric, reference: searchReference });
+      const data = await searchDuesRequests(searchQuery);
       setRequests(data);
     } catch (error) {
       console.error('Error searching dues requests:', error);
@@ -55,8 +54,7 @@ export default function AdminDuesPage() {
   };
 
   const clearSearch = () => {
-    setSearchMatric('');
-    setSearchReference('');
+    setSearchQuery('');
     loadAll();
   };
 
@@ -85,25 +83,14 @@ export default function AdminDuesPage() {
       </div>
 
       <form onSubmit={handleSearch} className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchMatric}
-              onChange={(e) => setSearchMatric(e.target.value)}
-              placeholder="Search by matric number"
-              className="pl-10"
-            />
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchReference}
-              onChange={(e) => setSearchReference(e.target.value)}
-              placeholder="Search by reference (NAMSN-XXXXXXXX)"
-              className="pl-10"
-            />
-          </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by matric number or reference (NAMSN-XXXXXXXX)"
+            className="pl-10"
+          />
         </div>
         <div className="mt-3 flex gap-2">
           <Button type="submit" disabled={searching} className="bg-accent text-accent-foreground hover:bg-accent/90">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseService } from '@/lib/supabase/serviceClient';
-import { createCheckoutSession } from '@/lib/bachs/client';
+import { createCheckoutSession, getCheckoutSession } from '@/lib/bachs/client';
 
 const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,6 +49,25 @@ export async function POST(req: NextRequest) {
   // domain) takes priority; falls back to the request's own origin once
   // actually deployed somewhere public.
   const origin = process.env.SITE_URL || req.nextUrl.origin;
+
+  // Guard against paying the same invoice twice: if there's already an open
+  // (unpaid, unexpired) checkout session from an earlier click, send them
+  // back to that one instead of spinning up a second — otherwise a double
+  // click, a reopened tab, or a slow back-button could produce two live
+  // checkout links for one invoice, and if both get completed the student
+  // is genuinely charged twice (Bachs has no way to know they're for the
+  // same thing once two separate charges exist).
+  if (dues.bachs_collection_id) {
+    try {
+      const existing = await getCheckoutSession(dues.bachs_collection_id);
+      if (existing.status === 'open') {
+        return NextResponse.json({ checkoutUrl: existing.checkout_url });
+      }
+    } catch (error) {
+      console.error('Error checking existing checkout session:', error);
+      // Fall through and create a new one if we can't confirm the old one's state.
+    }
+  }
 
   try {
     // Bachs requires a checkout session's `reference` to be unique per

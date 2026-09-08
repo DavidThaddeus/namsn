@@ -53,6 +53,12 @@ export interface CreateCheckoutSessionResponse {
   reference: string | null;
 }
 
+export const getCheckoutSession = (checkoutId: string): Promise<CreateCheckoutSessionResponse> => {
+  return bachsFetch<CreateCheckoutSessionResponse>(`/v1/checkout-sessions/${checkoutId}`, {
+    method: 'GET',
+  });
+};
+
 export const createCheckoutSession = (
   input: CreateCheckoutSessionInput
 ): Promise<CreateCheckoutSessionResponse> => {

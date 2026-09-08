@@ -86,6 +86,25 @@ export const findDuesRequests = async (query: { matric?: string; reference?: str
   return (data as DuesRow[]).map(mapRow);
 };
 
+// Single search box: matches either a matric number or a reference, so the
+// caller doesn't need to know or care which one they're typing.
+export const searchDuesRequests = async (query: string): Promise<DuesRequest[]> => {
+  const value = query.trim();
+  if (!value) return [];
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .or(`matric_number.eq.${value},reference.eq.${value.toUpperCase()}`)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error searching dues requests:', errorMessage(error));
+    throw error;
+  }
+  return (data as DuesRow[]).map(mapRow);
+};
+
 export const getAllDuesRequests = async (): Promise<DuesRequest[]> => {
   const { data, error } = await supabase.from(TABLE).select('*').order('created_at', { ascending: false });
   if (error) {

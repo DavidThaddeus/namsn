@@ -50,16 +50,27 @@ export async function POST(req: NextRequest) {
   // actually deployed somewhere public.
   const origin = process.env.SITE_URL || req.nextUrl.origin;
 
-  // Guard against paying the same invoice twice: if there's already an open
-  // (unpaid, unexpired) checkout session from an earlier click, send them
-  // back to that one instead of spinning up a second — otherwise a double
-  // click, a reopened tab, or a slow back-button could produce two live
-  // checkout links for one invoice, and if both get completed the student
-  // is genuinely charged twice (Bachs has no way to know they're for the
-  // same thing once two separate charges exist).
+  // Guard against paying the same invoice twice. Our own payment_status
+  // check above only catches this once the webhook has landed — if a
+  // student clicks Pay Now again in the gap between actually paying and
+  // the webhook confirming it, that check alone would miss it and a new
+  // checkout would be created. So check the previous session directly:
+  // if it's already completed, this invoice is paid, full stop (and we
+  // self-heal our own record here rather than waiting on the webhook,
+  // since we've just confirmed it directly with Bachs). If it's still
+  // open, send them back to that same link instead of starting a second.
   if (dues.bachs_collection_id) {
     try {
       const existing = await getCheckoutSession(dues.bachs_collection_id);
+      if (existing.status === 'completed') {
+        if (dues.payment_status !== 'paid') {
+          await supabaseService
+            .from('dues_requests')
+            .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
+            .eq('id', dues.id);
+        }
+        return NextResponse.json({ error: 'This dues request is already paid' }, { status: 409 });
+      }
       if (existing.status === 'open') {
         return NextResponse.json({ checkoutUrl: existing.checkout_url });
       }

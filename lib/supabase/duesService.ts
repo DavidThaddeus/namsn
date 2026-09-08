@@ -67,6 +67,25 @@ export const submitDuesRequest = async (data: CreateDuesRequestDto, userId: stri
   return mapRow(row as DuesRow);
 };
 
+// Explicit created_by filter, not just relying on RLS — a super_admin's own
+// RLS grant sees every student's rows, so without this an admin submitting
+// their own dues request would be counted against everyone else's unpaid
+// invoices instead of just their own.
+export const getMyUnpaidDuesRequests = async (userId: string): Promise<DuesRequest[]> => {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('created_by', userId)
+    .eq('payment_status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error getting unpaid dues requests:', errorMessage(error));
+    throw error;
+  }
+  return (data as DuesRow[]).map(mapRow);
+};
+
 // Matches by reference first if given (most specific), otherwise by matric
 // number. RLS already scopes results to the caller's own submissions unless
 // they're super_admin, so this never needs to filter by user on top of that.

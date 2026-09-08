@@ -18,7 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { submitDuesRequest, findDuesRequests, searchDuesRequests } from '@/lib/supabase/duesService';
+import {
+  submitDuesRequest,
+  findDuesRequests,
+  searchDuesRequests,
+  getMyUnpaidDuesRequests,
+} from '@/lib/supabase/duesService';
 import { DuesLevel, DuesRequest, StudentStatus } from '@/types/dues';
 import { format } from 'date-fns';
 
@@ -37,6 +42,12 @@ const SERVICE_FEE = 150;
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 120000;
 
+// Cap on how many unpaid invoices one student can have open at once — high
+// enough that someone unsure whether a first attempt "worked" isn't stuck,
+// but low enough to stop invoice creation from being used as a way to avoid
+// dealing with an existing one.
+const MAX_UNPAID_INVOICES = 3;
+
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
 function DuesPageContent() {
@@ -53,6 +64,7 @@ function DuesPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [submittedRequest, setSubmittedRequest] = useState<DuesRequest | null>(null);
   const [payingNow, setPayingNow] = useState(false);
+  const [unpaidInvoices, setUnpaidInvoices] = useState<DuesRequest[] | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -113,6 +125,12 @@ function DuesPageContent() {
 
     setSubmitting(true);
     try {
+      const unpaid = await getMyUnpaidDuesRequests(currentUser.uid);
+      if (unpaid.length >= MAX_UNPAID_INVOICES) {
+        setUnpaidInvoices(unpaid);
+        return;
+      }
+
       const created = await submitDuesRequest(
         { ...form, status, amount, feeAmount: SERVICE_FEE },
         currentUser.uid
@@ -325,7 +343,37 @@ function DuesPageContent() {
           </div>
         </div>
 
-        {submittedRequest ? (
+        {unpaidInvoices ? (
+          <div className="mt-6 space-y-4 rounded-lg border border-accent/30 bg-accent/5 p-6">
+            <div>
+              <p className="font-medium text-foreground">You already have {unpaidInvoices.length} unpaid invoices</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pay or check one of these instead of starting a new one — starting a new invoice doesn&apos;t
+                make an existing one pay faster.
+              </p>
+            </div>
+            <div className="space-y-2">
+              {unpaidInvoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-background p-3 text-sm"
+                >
+                  <span className="font-mono">{inv.reference}</span>
+                  <span className="text-muted-foreground">{formatNaira(inv.totalAmount)}</span>
+                  <Link
+                    href={`/dashboard/dues/invoice/${inv.reference}`}
+                    className="font-medium text-primary underline underline-offset-2"
+                  >
+                    View &amp; Pay
+                  </Link>
+                </div>
+              ))}
+            </div>
+            <Button variant="outline" onClick={() => setUnpaidInvoices(null)}>
+              Back
+            </Button>
+          </div>
+        ) : submittedRequest ? (
           <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-8 text-center">
             <CheckCircle2 className="h-10 w-10 text-primary" />
             <div>

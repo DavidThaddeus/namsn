@@ -16,7 +16,7 @@ interface BachsWebhookEvent {
     status?: string;
     amount?: string;
     currency?: string;
-    meta?: Record<string, string>;
+    metadata?: Record<string, string>;
     [key: string]: unknown;
   };
 }
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   // it's our real primary key and never changes. The Bachs checkout
   // `reference` is a fresh, per-attempt value (see checkout/route.ts), so
   // it's only useful as a fallback, not the primary lookup.
-  const duesId = event.data.meta?.dues_request_id;
+  const duesId = event.data.metadata?.dues_request_id;
   const reference = event.data.reference;
 
   let duesRequestId: string | null = null;

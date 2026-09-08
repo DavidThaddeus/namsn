@@ -30,3 +30,16 @@ export interface CreateDuesRequestDto {
   amount: number;
   feeAmount: number;
 }
+
+// The minimal, public-safe shape returned by the verify_receipt() function —
+// no email/phone, and only ever populated for a paid record.
+export interface VerifiedReceipt {
+  reference: string;
+  fullName: string;
+  level: DuesLevel;
+  status: StudentStatus;
+  amount: number;
+  feeAmount: number;
+  totalAmount: number;
+  paidAt: Date;
+}

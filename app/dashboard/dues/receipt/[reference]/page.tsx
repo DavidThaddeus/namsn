@@ -1,0 +1,157 @@
+'use client';
+
+import { use, useEffect, useState } from 'react';
+import Image from 'next/image';
+import { format } from 'date-fns';
+import QRCode from 'qrcode';
+import { Loader2, Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { findDuesRequests } from '@/lib/supabase/duesService';
+import { DuesRequest } from '@/types/dues';
+
+const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
+
+export default function ReceiptPage({
+  params,
+}: {
+  params: Promise<{ reference: string }>;
+}) {
+  const { reference } = use(params);
+  const [dues, setDues] = useState<DuesRequest | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    findDuesRequests({ reference })
+      .then((data) => {
+        if (cancelled) return;
+        const record = data[0] || null;
+        setDues(record);
+        if (record) {
+          const verifyUrl = `${window.location.origin}/verify/${record.reference}`;
+          QRCode.toDataURL(verifyUrl, { width: 160, margin: 1 })
+            .then((url) => !cancelled && setQrDataUrl(url))
+            .catch((err) => console.error('Error generating QR code:', err));
+        }
+      })
+      .catch((err) => console.error('Error loading receipt:', err))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [reference]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!dues || dues.paymentStatus !== 'paid') {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+        <p className="text-lg font-medium text-foreground">Receipt not available</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {dues ? 'This dues request has not been paid yet.' : 'No record found for that reference.'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between print:hidden">
+        <h1 className="font-display text-2xl font-bold text-foreground">Receipt</h1>
+        <Button onClick={() => window.print()} className="bg-accent text-accent-foreground hover:bg-accent/90">
+          <Printer className="h-4 w-4" /> Print / Save as PDF
+        </Button>
+      </div>
+
+      <div className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-border bg-card p-10 shadow-sm print:rounded-none print:border-0 print:shadow-none">
+        {/* Watermark */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+        >
+          <span className="rotate-[-30deg] whitespace-nowrap text-6xl font-bold uppercase tracking-widest text-primary/[0.06] print:text-primary/10">
+            NAMSN FUNAAB · OFFICIAL RECEIPT
+          </span>
+        </div>
+
+        <div className="relative">
+          <div className="flex items-center justify-between border-b border-border pb-6">
+            <div className="flex items-center gap-3">
+              <Image src="/namsn.png" alt="NAMSN" width={48} height={48} />
+              <div>
+                <p className="font-display text-lg font-bold text-foreground">NAMSN FUNAAB</p>
+                <p className="text-xs text-muted-foreground">Dept. of Mathematics, FUNAAB</p>
+              </div>
+            </div>
+            {qrDataUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={qrDataUrl} alt="Verification QR code" width={100} height={100} />
+            )}
+          </div>
+
+          <div className="mt-6 flex items-center justify-between">
+            <h2 className="font-display text-xl font-semibold text-foreground">Payment Receipt</h2>
+            <span className="bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              Paid
+            </span>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-y-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Name</p>
+              <p className="font-medium text-foreground">{dues.fullName}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Matric Number</p>
+              <p className="font-medium text-foreground">{dues.matricNumber}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Level</p>
+              <p className="font-medium text-foreground">{dues.level}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Status</p>
+              <p className="font-medium text-foreground">{dues.status}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Reference</p>
+              <p className="font-mono font-medium text-foreground">{dues.reference}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Date Paid</p>
+              <p className="font-medium text-foreground">
+                {dues.paidAt ? format(dues.paidAt, 'MMM d, yyyy') : '—'}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-2 border-t border-border pt-4 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Dues</span>
+              <span>{formatNaira(dues.amount)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Processing fee</span>
+              <span>{formatNaira(dues.feeAmount)}</span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-2 text-base font-semibold text-foreground">
+              <span>Total Paid</span>
+              <span>{formatNaira(dues.totalAmount)}</span>
+            </div>
+          </div>
+
+          <p className="mt-8 text-center text-xs text-muted-foreground">
+            Scan the QR code above to verify this receipt online.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

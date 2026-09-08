@@ -1,6 +1,6 @@
 import { supabase } from './config';
 import { errorMessage } from './errors';
-import { CreateDuesRequestDto, DuesPaymentStatus, DuesRequest } from '@/types/dues';
+import { CreateDuesRequestDto, DuesPaymentStatus, DuesRequest, VerifiedReceipt } from '@/types/dues';
 
 const TABLE = 'dues_requests';
 
@@ -101,4 +101,28 @@ export const updateDuesPaymentStatus = async (id: string, paymentStatus: DuesPay
     console.error('Error updating payment status:', errorMessage(error));
     throw error;
   }
+};
+
+// Public, unauthenticated lookup for the /verify/<reference> page — backed
+// by a security-definer function that only ever returns non-sensitive
+// fields, and only for a paid record. Returns null for anything else
+// (wrong reference, not yet paid) without distinguishing which.
+export const verifyReceipt = async (reference: string): Promise<VerifiedReceipt | null> => {
+  const { data, error } = await supabase.rpc('verify_receipt', { p_reference: reference.trim().toUpperCase() });
+  if (error) {
+    console.error('Error verifying receipt:', errorMessage(error));
+    throw error;
+  }
+  const row = data?.[0];
+  if (!row) return null;
+  return {
+    reference: row.reference,
+    fullName: row.full_name,
+    level: row.level,
+    status: row.status,
+    amount: row.amount,
+    feeAmount: row.fee_amount,
+    totalAmount: row.total_amount,
+    paidAt: new Date(row.paid_at),
+  };
 };

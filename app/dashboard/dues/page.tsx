@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { CheckCircle2, Copy, Loader2, Receipt, Search, Wallet, XCircle } from 'lucide-react';
@@ -188,6 +189,14 @@ function DuesPageContent() {
                   ? `Thank you — your ${paymentReturnRequest.status.toLowerCase()} dues (${formatNaira(paymentReturnRequest.totalAmount)}) have been received.`
                   : "Your payment went through on Bachs' side, but we haven't confirmed it in our records yet — this usually takes a few seconds. Search your reference below to check again."}
             </p>
+            {paymentReturnRequest?.paymentStatus === 'paid' && (
+              <Link
+                href={`/dashboard/dues/receipt/${paymentReturnRequest.reference}`}
+                className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-2"
+              >
+                View Receipt
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -410,9 +419,19 @@ function DuesPageContent() {
                       <span>Amount to pay: {formatNaira(r.totalAmount)}</span>
                       <span className="capitalize">Payment status: {r.paymentStatus}</span>
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Submitted {format(r.createdAt, 'MMM d, yyyy')}
-                    </p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        Submitted {format(r.createdAt, 'MMM d, yyyy')}
+                      </p>
+                      {r.paymentStatus === 'paid' && (
+                        <Link
+                          href={`/dashboard/dues/receipt/${r.reference}`}
+                          className="text-xs font-medium text-primary underline underline-offset-2"
+                        >
+                          View Receipt
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

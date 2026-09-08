@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { CheckCircle2, Circle, Loader2, Search } from 'lucide-react';
@@ -141,22 +142,29 @@ export default function AdminDuesPage() {
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">Submitted {format(r.createdAt, 'MMM d, yyyy')}</p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={updatingId === r.id}
-                  onClick={() => togglePaid(r)}
-                  className={r.paymentStatus === 'paid' ? 'text-primary' : 'text-muted-foreground'}
-                >
-                  {updatingId === r.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : r.paymentStatus === 'paid' ? (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  ) : (
-                    <Circle className="h-3.5 w-3.5" />
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  {r.paymentStatus === 'paid' && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/dashboard/dues/receipt/${r.reference}`}>Receipt</Link>
+                    </Button>
                   )}
-                  {r.paymentStatus === 'paid' ? 'Paid' : 'Mark as Paid'}
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={updatingId === r.id}
+                    onClick={() => togglePaid(r)}
+                    className={r.paymentStatus === 'paid' ? 'text-primary' : 'text-muted-foreground'}
+                  >
+                    {updatingId === r.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : r.paymentStatus === 'paid' ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5" />
+                    )}
+                    {r.paymentStatus === 'paid' ? 'Paid' : 'Mark as Paid'}
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>

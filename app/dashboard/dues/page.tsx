@@ -133,7 +133,7 @@ function DuesPageContent() {
       window.location.href = data.checkoutUrl;
     } catch (error) {
       console.error('Error starting payment:', error);
-      toast.error('Failed to start payment. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to start payment. Please try again.');
     } finally {
       setPayingNow(false);
     }

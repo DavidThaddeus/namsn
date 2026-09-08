@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ checkoutUrl: session.checkout_url });
   } catch (error) {
     console.error('Error creating Bachs checkout session:', error);
-    return NextResponse.json({ error: 'Failed to start payment' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: `Failed to start payment: ${message}` }, { status: 500 });
   }
 }

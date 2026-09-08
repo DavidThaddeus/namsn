@@ -143,9 +143,13 @@ export default function AdminDuesPage() {
                   <p className="mt-1 text-xs text-muted-foreground">Submitted {format(r.createdAt, 'MMM d, yyyy')}</p>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2">
-                  {r.paymentStatus === 'paid' && (
+                  {r.paymentStatus === 'paid' ? (
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/dashboard/dues/receipt/${r.reference}`}>Receipt</Link>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/dashboard/dues/invoice/${r.reference}`}>Invoice</Link>
                     </Button>
                   )}
                   <Button

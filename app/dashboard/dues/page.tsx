@@ -256,6 +256,12 @@ function DuesPageContent() {
               {payingNow && <Loader2 className="h-4 w-4 animate-spin" />}
               Pay {formatNaira(submittedRequest.totalAmount)} Now
             </Button>
+            <Link
+              href={`/dashboard/dues/invoice/${submittedRequest.reference}`}
+              className="text-sm font-medium text-primary underline underline-offset-2"
+            >
+              View Printable Invoice
+            </Link>
             <button
               type="button"
               onClick={handleCopyReference}
@@ -423,12 +429,19 @@ function DuesPageContent() {
                       <p className="text-xs text-muted-foreground">
                         Submitted {format(r.createdAt, 'MMM d, yyyy')}
                       </p>
-                      {r.paymentStatus === 'paid' && (
+                      {r.paymentStatus === 'paid' ? (
                         <Link
                           href={`/dashboard/dues/receipt/${r.reference}`}
                           className="text-xs font-medium text-primary underline underline-offset-2"
                         >
                           View Receipt
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/dashboard/dues/invoice/${r.reference}`}
+                          className="text-xs font-medium text-primary underline underline-offset-2"
+                        >
+                          View Invoice
                         </Link>
                       )}
                     </div>

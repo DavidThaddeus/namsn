@@ -90,11 +90,12 @@ export const createCheckoutSession = (
       metadata: input.metadata,
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
-      // Left unset, Bachs offers every method it supports — US cards,
-      // crypto, and mobile money for several other countries included.
-      // None of that fits a Naira-denominated NAMSN FUNAAB due, so it's
-      // locked down to the two rails that actually make sense here.
-      payment_method_options: { NGN_BANK_TRANSFER: {}, NGN_CARD: {} },
+      // Bank transfer only. Bachs's Local Cards rail is still Beta and
+      // costs more (2% vs bank transfer's 1.5%, capped at ₦2,000) — no
+      // reason to offer a pricier, less-proven option for a departmental
+      // due. Left unrestricted, Bachs also offers US cards and crypto,
+      // neither of which fits a Naira-denominated charge at all.
+      payment_method_options: { NGN_BANK_TRANSFER: {} },
       ...(input.destination
         ? {
             transfer_data: {

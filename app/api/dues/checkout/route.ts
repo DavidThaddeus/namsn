@@ -54,11 +54,13 @@ export async function POST(req: NextRequest) {
   // check above only catches this once the webhook has landed — if a
   // student clicks Pay Now again in the gap between actually paying and
   // the webhook confirming it, that check alone would miss it and a new
-  // checkout would be created. So check the previous session directly:
-  // if it's already completed, this invoice is paid, full stop (and we
+  // checkout would be created. So check the previous session directly: if
+  // it's already completed, this invoice is paid, full stop (and we
   // self-heal our own record here rather than waiting on the webhook,
   // since we've just confirmed it directly with Bachs). If it's still
-  // open, send them back to that same link instead of starting a second.
+  // open (or anything else), fall through to start a fresh one — Bachs'
+  // GET endpoint doesn't return the hosted checkout_url, only the create
+  // call does, so the old link genuinely can't be reused here.
   if (dues.bachs_collection_id) {
     try {
       const existing = await getCheckoutSession(dues.bachs_collection_id);
@@ -70,9 +72,6 @@ export async function POST(req: NextRequest) {
             .eq('id', dues.id);
         }
         return NextResponse.json({ error: 'This dues request is already paid' }, { status: 409 });
-      }
-      if (existing.status === 'open') {
-        return NextResponse.json({ checkoutUrl: existing.checkout_url });
       }
     } catch (error) {
       console.error('Error checking existing checkout session:', error);

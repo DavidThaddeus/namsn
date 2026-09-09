@@ -53,8 +53,22 @@ export interface CreateCheckoutSessionResponse {
   reference: string | null;
 }
 
-export const getCheckoutSession = (checkoutId: string): Promise<CreateCheckoutSessionResponse> => {
-  return bachsFetch<CreateCheckoutSessionResponse>(`/v1/checkout-sessions/${checkoutId}`, {
+// GET /v1/checkout-sessions/{id} does NOT include checkout_url — that's
+// only ever returned once, by the create call. Kept as a separate type on
+// purpose so this can't silently regress into assuming a field that isn't
+// actually there (which is exactly what broke payment: reusing this
+// response's nonexistent checkout_url sent the browser to
+// `window.location.href = undefined`, landing on /invoice/undefined).
+export interface GetCheckoutSessionResponse {
+  checkout_id: string;
+  status: 'open' | 'completed' | 'expired' | 'cancelled';
+  expires_at: string;
+  created_at: string;
+  reference: string | null;
+}
+
+export const getCheckoutSession = (checkoutId: string): Promise<GetCheckoutSessionResponse> => {
+  return bachsFetch<GetCheckoutSessionResponse>(`/v1/checkout-sessions/${checkoutId}`, {
     method: 'GET',
   });
 };

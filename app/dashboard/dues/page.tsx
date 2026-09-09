@@ -172,6 +172,7 @@ function DuesPageContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start payment');
+      if (!data.checkoutUrl) throw new Error('No checkout link was returned. Please try again.');
 
       window.location.href = data.checkoutUrl;
     } catch (error) {

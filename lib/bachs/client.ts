@@ -90,6 +90,11 @@ export const createCheckoutSession = (
       metadata: input.metadata,
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
+      // Left unset, Bachs offers every method it supports — US cards,
+      // crypto, and mobile money for several other countries included.
+      // None of that fits a Naira-denominated NAMSN FUNAAB due, so it's
+      // locked down to the two rails that actually make sense here.
+      payment_method_options: { NGN_BANK_TRANSFER: {}, NGN_CARD: {} },
       ...(input.destination
         ? {
             transfer_data: {

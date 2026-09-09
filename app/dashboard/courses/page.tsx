@@ -137,7 +137,7 @@ export default function CoursesPage() {
           <p className="mt-1 text-sm text-muted-foreground">Check back later for new courses</p>
         </div>
       ) : !selectedFolder ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {tiles.map((tile) => (
             <button
               key={tile.id}
@@ -158,7 +158,7 @@ export default function CoursesPage() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {selectedFolder.courses.map(renderCourseCard)}
         </div>
       )}

@@ -188,7 +188,7 @@ export default function ProfilePage() {
           <p className="mt-1 text-sm text-muted-foreground">Your personal details and information.</p>
         </div>
         <dl className="divide-y divide-border">
-          <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-muted-foreground">Profile Photo</dt>
             <dd className="sm:col-span-2">
               <div className="relative h-16 w-16">
@@ -231,7 +231,7 @@ export default function ProfilePage() {
           </div>
 
           {isEditing ? (
-            <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+            <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
               <dt className="pt-2 text-sm font-medium text-muted-foreground">Full name</dt>
               <dd className="sm:col-span-2">
                 <div className="flex gap-4">
@@ -241,7 +241,7 @@ export default function ProfilePage() {
               </dd>
             </div>
           ) : (
-            <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+            <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
               <dt className="text-sm font-medium text-muted-foreground">Full name</dt>
               <dd className="text-sm text-foreground sm:col-span-2">
                 {`${profile.firstName} ${profile.lastName}`.trim() || 'Not set'}
@@ -249,12 +249,12 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-muted-foreground">Email address</dt>
-            <dd className="text-sm text-foreground sm:col-span-2">{profile.email}</dd>
+            <dd className="break-words text-sm text-foreground sm:col-span-2">{profile.email}</dd>
           </div>
 
-          <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
             <dt className="pt-2 text-sm font-medium text-muted-foreground sm:pt-0">Matric Number</dt>
             <dd className="sm:col-span-2">
               {isEditing ? (
@@ -270,12 +270,12 @@ export default function ProfilePage() {
             </dd>
           </div>
 
-          <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-muted-foreground">Department</dt>
             <dd className="text-sm text-foreground sm:col-span-2">{profile.department}</dd>
           </div>
 
-          <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
             <dt className="pt-2 text-sm font-medium text-muted-foreground sm:pt-0">Level</dt>
             <dd className="sm:col-span-2">
               {isEditing ? (
@@ -308,13 +308,13 @@ export default function ProfilePage() {
           <p className="mt-1 text-sm text-muted-foreground">Manage your account security and preferences.</p>
         </div>
         <dl className="divide-y divide-border">
-          <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-muted-foreground">Change Password</dt>
             <dd className="sm:col-span-2">
               <span className="text-sm text-muted-foreground">Coming soon</span>
             </dd>
           </div>
-          <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-muted-foreground">Two-Factor Authentication</dt>
             <dd className="sm:col-span-2">
               <span className="bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
@@ -322,7 +322,7 @@ export default function ProfilePage() {
               </span>
             </dd>
           </div>
-          <div className="grid gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-1 px-6 py-5 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-muted-foreground">Delete Account</dt>
             <dd className="sm:col-span-2">
               <span className="text-sm text-muted-foreground">Coming soon</span>

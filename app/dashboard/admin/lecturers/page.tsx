@@ -150,7 +150,7 @@ export default function AdminLecturersPage() {
           <h2 className="font-display text-lg font-semibold text-foreground">
             {editingId ? 'Edit Lecturer' : 'New Lecturer'}
           </h2>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Dr. / Prof. ..." required />

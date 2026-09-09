@@ -491,7 +491,7 @@ export default function AdminMaterialsPage() {
 
         {showNewFolder && (
           <form onSubmit={handleCreateFolder} className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="folderType">Folder Type</Label>
                 <Select value={newFolderType} onValueChange={(v) => setNewFolderType(v as MaterialType)}>
@@ -538,7 +538,7 @@ export default function AdminMaterialsPage() {
             No folders yet for {level} Level. Create one to start uploading materials.
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {folders.map((folder) => (
               <div key={folder.id} className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <button
@@ -590,7 +590,7 @@ export default function AdminMaterialsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {LEVELS.map((l) => (
           <button
             key={l}

@@ -143,7 +143,7 @@ export default function AdminEventsPage() {
           <h2 className="font-display text-lg font-semibold text-foreground">
             {editingId ? 'Edit Event' : 'New Event'}
           </h2>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="title">Title</Label>
               <Input id="title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />

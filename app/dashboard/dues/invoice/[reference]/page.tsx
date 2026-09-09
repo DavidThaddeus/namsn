@@ -109,16 +109,16 @@ export default function InvoicePage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex flex-col gap-3 print:hidden sm:flex-row sm:items-center sm:justify-between">
         <h1 className="font-display text-2xl font-bold text-foreground">Invoice</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.print()}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => window.print()} className="flex-1 sm:flex-none">
             <Printer className="h-4 w-4" /> Print
           </Button>
           <Button
             onClick={handlePayNow}
             disabled={payingNow}
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
+            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 sm:flex-none"
           >
             {payingNow && <Loader2 className="h-4 w-4 animate-spin" />}
             Pay {formatNaira(dues.totalAmount)} Now
@@ -126,70 +126,70 @@ export default function InvoicePage({
         </div>
       </div>
 
-      <div className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-border bg-card p-10 shadow-sm print:rounded-none print:border-0 print:shadow-none">
+      <div className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-10 print:rounded-none print:border-0 print:shadow-none">
         {/* Watermark */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
         >
-          <span className="rotate-[-30deg] whitespace-nowrap text-6xl font-bold uppercase tracking-widest text-destructive/[0.06] print:text-destructive/10">
+          <span className="rotate-[-30deg] whitespace-nowrap text-3xl font-bold uppercase tracking-widest text-destructive/[0.06] sm:text-6xl print:text-destructive/10">
             NAMSN FUNAAB · UNPAID
           </span>
         </div>
 
         <div className="relative">
           <div className="flex items-center justify-between border-b border-border pb-6">
-            <div className="flex items-center gap-3">
-              <Image src="/namsn.png" alt="NAMSN" width={48} height={48} />
-              <div>
-                <p className="font-display text-lg font-bold text-foreground">NAMSN FUNAAB</p>
-                <p className="text-xs text-muted-foreground">Department of Mathematics, FUNAAB</p>
+            <div className="flex min-w-0 items-center gap-3">
+              <Image src="/namsn.png" alt="NAMSN" width={48} height={48} className="flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="break-words font-display text-lg font-bold text-foreground">NAMSN FUNAAB</p>
+                <p className="break-words text-xs text-muted-foreground">Department of Mathematics, FUNAAB</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-xl font-semibold text-foreground">Payment Invoice</h2>
             <span className="bg-destructive px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               Unpaid
             </span>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-y-4 text-sm">
-            <div>
+          <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-4 text-sm sm:grid-cols-2">
+            <div className="min-w-0">
               <p className="text-muted-foreground">Name</p>
-              <p className="font-medium text-foreground">{dues.fullName}</p>
+              <p className="break-words font-medium text-foreground">{dues.fullName}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Email</p>
-              <p className="font-medium text-foreground">{dues.email}</p>
+              <p className="break-words font-medium text-foreground">{dues.email}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Matric Number</p>
-              <p className="font-medium text-foreground">{dues.matricNumber}</p>
+              <p className="break-words font-medium text-foreground">{dues.matricNumber}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Level</p>
-              <p className="font-medium text-foreground">{dues.level}</p>
+              <p className="break-words font-medium text-foreground">{dues.level}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Status</p>
-              <p className="font-medium text-foreground">{dues.status}</p>
+              <p className="break-words font-medium text-foreground">{dues.status}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Reference</p>
-              <p className="font-mono font-medium text-foreground">{dues.reference}</p>
+              <p className="break-all font-mono font-medium text-foreground">{dues.reference}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Invoice Date</p>
-              <p className="font-medium text-foreground">{format(dues.createdAt, 'MMM d, yyyy')}</p>
+              <p className="break-words font-medium text-foreground">{format(dues.createdAt, 'MMM d, yyyy')}</p>
             </div>
           </div>
 
           <div className="mt-6 border-t border-border pt-4">
             <p className="text-xs text-muted-foreground">Paid to</p>
             <p className="text-sm font-medium text-foreground">NAMSN</p>
-            <p className="text-sm text-muted-foreground">funaabnamsn@gmail.com</p>
+            <p className="break-words text-sm text-muted-foreground">funaabnamsn@gmail.com</p>
           </div>
 
           <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">

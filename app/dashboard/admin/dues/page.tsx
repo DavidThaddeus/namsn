@@ -110,8 +110,8 @@ export default function AdminDuesPage() {
                     <span>Matric: {r.matricNumber}</span>
                     <span>Level: {r.level}</span>
                     <span>Dues: {formatNaira(r.amount)} + Fee: {formatNaira(r.feeAmount)} = {formatNaira(r.totalAmount)}</span>
-                    <span>{r.email}</span>
-                    <span>{r.phone}</span>
+                    <span className="break-words">{r.email}</span>
+                    <span className="break-words">{r.phone}</span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">Submitted {format(r.createdAt, 'MMM d, yyyy')}</p>
                 </div>

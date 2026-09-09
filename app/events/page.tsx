@@ -51,13 +51,13 @@ export default function EventsPage() {
             )}
 
             {loading ? (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {[0, 1].map((i) => (
                   <div key={i} className="h-32 animate-pulse rounded-xl border border-border bg-muted/50" />
                 ))}
               </div>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {events.map((event) => (
                   <div
                     key={event.id}

@@ -43,15 +43,15 @@ export default function ContactPage() {
         </section>
 
         <section className="py-16">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
             <div className="space-y-6 rounded-2xl border border-border bg-card p-8 shadow-sm">
               <div className="flex items-start gap-4">
                 <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center bg-primary text-primary-foreground">
                   <MapPin className="h-5 w-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-display text-base font-semibold text-foreground">Visit Us</h3>
-                  <p className="mt-1 text-muted-foreground">
+                  <p className="mt-1 break-words text-muted-foreground">
                     Department of Mathematics
                     <br />
                     College of Physical Sciences
@@ -66,18 +66,18 @@ export default function ContactPage() {
                 <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center bg-primary text-primary-foreground">
                   <Phone className="h-5 w-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-display text-base font-semibold text-foreground">Call Us</h3>
-                  <p className="mt-1 text-muted-foreground">+234 (0) 800 000 0000</p>
+                  <p className="mt-1 break-words text-muted-foreground">+234 (0) 800 000 0000</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
                 <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center bg-primary text-primary-foreground">
                   <Mail className="h-5 w-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-display text-base font-semibold text-foreground">Email Us</h3>
-                  <p className="mt-1 text-muted-foreground">info@mathematics.funaab.edu.ng</p>
+                  <p className="mt-1 break-words text-muted-foreground">info@mathematics.funaab.edu.ng</p>
                 </div>
               </div>
             </div>

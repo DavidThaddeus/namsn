@@ -4,7 +4,7 @@ export function ValuesList() {
   return (
     <div className="mx-auto max-w-3xl divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
       {missionVisionValues.map((item, index) => (
-        <div key={item.label} className="grid gap-2 p-6 sm:grid-cols-[90px_1fr] sm:gap-6">
+        <div key={item.label} className="grid grid-cols-1 gap-2 p-6 sm:grid-cols-[90px_1fr] sm:gap-6">
           <span className="font-display text-4xl font-bold leading-none text-accent/30">
             0{index + 1}
           </span>

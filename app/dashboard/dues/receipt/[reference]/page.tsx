@@ -76,88 +76,88 @@ export default function ReceiptPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex flex-col gap-3 print:hidden sm:flex-row sm:items-center sm:justify-between">
         <h1 className="font-display text-2xl font-bold text-foreground">Receipt</h1>
-        <Button onClick={() => window.print()} className="bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button onClick={() => window.print()} className="bg-accent text-accent-foreground hover:bg-accent/90 sm:self-start">
           <Printer className="h-4 w-4" /> Print / Save as PDF
         </Button>
       </div>
 
-      <div className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-border bg-card p-10 shadow-sm print:rounded-none print:border-0 print:shadow-none">
+      <div className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-10 print:rounded-none print:border-0 print:shadow-none">
         {/* Watermark */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
         >
-          <span className="rotate-[-30deg] whitespace-nowrap text-6xl font-bold uppercase tracking-widest text-success/[0.08] print:text-success/15">
+          <span className="rotate-[-30deg] whitespace-nowrap text-3xl font-bold uppercase tracking-widest text-success/[0.08] sm:text-6xl print:text-success/15">
             NAMSN FUNAAB · PAID
           </span>
         </div>
 
         <div className="relative">
-          <div className="flex items-center justify-between border-b border-border pb-6">
-            <div className="flex items-center gap-3">
-              <Image src="/namsn.png" alt="NAMSN" width={48} height={48} />
-              <div>
-                <p className="font-display text-lg font-bold text-foreground">NAMSN FUNAAB</p>
-                <p className="text-xs text-muted-foreground">Department of Mathematics, FUNAAB</p>
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <Image src="/namsn.png" alt="NAMSN" width={48} height={48} className="flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="break-words font-display text-lg font-bold text-foreground">NAMSN FUNAAB</p>
+                <p className="break-words text-xs text-muted-foreground">Department of Mathematics, FUNAAB</p>
               </div>
             </div>
             {qrDataUrl && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={qrDataUrl} alt="Verification QR code" width={100} height={100} />
+              <img src={qrDataUrl} alt="Verification QR code" width={100} height={100} className="h-20 w-20 flex-shrink-0 sm:h-[100px] sm:w-[100px]" />
             )}
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-xl font-semibold text-foreground">Payment Receipt</h2>
             <span className="bg-success px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               Paid
             </span>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-y-4 text-sm">
-            <div>
+          <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-4 text-sm sm:grid-cols-2">
+            <div className="min-w-0">
               <p className="text-muted-foreground">Name</p>
-              <p className="font-medium text-foreground">{dues.fullName}</p>
+              <p className="break-words font-medium text-foreground">{dues.fullName}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Email</p>
-              <p className="font-medium text-foreground">{dues.email}</p>
+              <p className="break-words font-medium text-foreground">{dues.email}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Matric Number</p>
-              <p className="font-medium text-foreground">{dues.matricNumber}</p>
+              <p className="break-words font-medium text-foreground">{dues.matricNumber}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Level</p>
-              <p className="font-medium text-foreground">{dues.level}</p>
+              <p className="break-words font-medium text-foreground">{dues.level}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Status</p>
-              <p className="font-medium text-foreground">{dues.status}</p>
+              <p className="break-words font-medium text-foreground">{dues.status}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Reference</p>
-              <p className="font-mono font-medium text-foreground">{dues.reference}</p>
+              <p className="break-all font-mono font-medium text-foreground">{dues.reference}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-muted-foreground">Date Paid</p>
-              <p className="font-medium text-foreground">
+              <p className="break-words font-medium text-foreground">
                 {dues.paidAt ? format(dues.paidAt, 'MMM d, yyyy') : '—'}
               </p>
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
-            <div>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Paid to</p>
               <p className="text-sm font-medium text-foreground">NAMSN</p>
-              <p className="text-sm text-muted-foreground">funaabnamsn@gmail.com</p>
+              <p className="break-words text-sm text-muted-foreground">funaabnamsn@gmail.com</p>
             </div>
-            <div className="text-right">
+            <div className="min-w-0 text-right">
               <p className="text-xs text-muted-foreground">Amount Paid</p>
-              <p className="text-lg font-semibold text-foreground">{formatNaira(dues.amount)}</p>
+              <p className="break-words text-lg font-semibold text-foreground">{formatNaira(dues.amount)}</p>
             </div>
           </div>
 

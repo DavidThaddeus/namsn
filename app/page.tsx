@@ -168,7 +168,7 @@ export default function Home() {
         {/* About */}
         <section id="about" className="scroll-mt-20 py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid items-center gap-12 md:grid-cols-2">
+            <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
               <div>
                 <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
                   About Our Department
@@ -221,7 +221,7 @@ export default function Home() {
                 One platform for the day-to-day of departmental life.
               </p>
             </div>
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {offerings.map((item) => {
                 const content = (
                   <>
@@ -276,7 +276,7 @@ export default function Home() {
               </Button>
             </div>
 
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
               {eventsLoading &&
                 [0, 1].map((i) => (
                   <div key={i} className="h-32 animate-pulse rounded-xl border border-border bg-muted/50" />
@@ -329,7 +329,7 @@ export default function Home() {
                 The current NAMSN FUNAAB executive council.
               </p>
             </div>
-            <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {executives.map((member) => (
                 <ExecutiveCard key={member.id} name={member.name} role={member.role} bio={member.bio} image={member.imageUrl} />
               ))}
@@ -369,7 +369,7 @@ export default function Home() {
               </Button>
             </div>
 
-            <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
               {loading &&
                 [0, 1, 2].map((i) => (
                   <div key={i} className="h-40 animate-pulse rounded-xl border border-border bg-muted/50" />

@@ -225,7 +225,7 @@ function DuesPageContent() {
         <p className="text-sm font-medium text-foreground">{r.fullName}</p>
         <Badge variant="secondary">{r.status}</Badge>
       </div>
-      <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+      <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
         <span className="font-mono">Ref: {r.reference}</span>
         <span>Matric: {r.matricNumber}</span>
         <span>Level: {r.level}</span>
@@ -478,7 +478,7 @@ function DuesPageContent() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input

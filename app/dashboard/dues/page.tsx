@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Copy, Loader2, Receipt, Search, Wallet, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, Copy, Loader2, Receipt, Search, Wallet, XCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/config';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import {
   findDuesRequests,
   searchDuesRequests,
   getMyUnpaidDuesRequests,
+  getAllDuesRequests,
 } from '@/lib/supabase/duesService';
 import { DuesLevel, DuesRequest, StudentStatus } from '@/types/dues';
 import { format } from 'date-fns';
@@ -42,11 +43,12 @@ const SERVICE_FEE = 150;
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 120000;
 
-// Cap on how many unpaid invoices one student can have open at once — high
-// enough that someone unsure whether a first attempt "worked" isn't stuck,
-// but low enough to stop invoice creation from being used as a way to avoid
-// dealing with an existing one.
-const MAX_UNPAID_INVOICES = 3;
+// Cap on how many unpaid invoices one student can have open at once. Not
+// just for yourself — a student can pay dues on a friend's behalf (useful
+// for someone without a working phone or data), so one account might
+// legitimately be juggling several people's invoices at once. High enough
+// for that; still a real ceiling against runaway invoice creation.
+const MAX_UNPAID_INVOICES = 10;
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
@@ -70,6 +72,10 @@ function DuesPageContent() {
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [results, setResults] = useState<DuesRequest[]>([]);
+
+  const [myRecords, setMyRecords] = useState<DuesRequest[]>([]);
+  const [myRecordsLoading, setMyRecordsLoading] = useState(true);
+  const [myRecordsOpen, setMyRecordsOpen] = useState(false);
 
   const [paymentReturn, setPaymentReturn] = useState<'paid' | 'cancelled' | null>(null);
   const [paymentReturnRequest, setPaymentReturnRequest] = useState<DuesRequest | null>(null);
@@ -115,6 +121,17 @@ function DuesPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!currentUser) return;
+    // RLS already scopes this to what the caller is allowed to see: for a
+    // student, that's anything they submitted plus anything submitted for
+    // them (matched by their own matric number) — not literally everyone.
+    getAllDuesRequests()
+      .then(setMyRecords)
+      .catch((err) => console.error('Error loading dues history:', err))
+      .finally(() => setMyRecordsLoading(false));
+  }, [currentUser]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
@@ -136,6 +153,7 @@ function DuesPageContent() {
         currentUser.uid
       );
       setSubmittedRequest(created);
+      setMyRecords((prev) => [created, ...prev]);
       toast.success('Request received!');
     } catch (error) {
       console.error('Error submitting dues request:', error);
@@ -200,6 +218,40 @@ function DuesPageContent() {
       setSearching(false);
     }
   };
+
+  const renderRecordRow = (r: DuesRequest) => (
+    <div key={r.id} className="rounded-lg border border-border bg-muted/40 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium text-foreground">{r.fullName}</p>
+        <Badge variant="secondary">{r.status}</Badge>
+      </div>
+      <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+        <span className="font-mono">Ref: {r.reference}</span>
+        <span>Matric: {r.matricNumber}</span>
+        <span>Level: {r.level}</span>
+        <span>Amount to pay: {formatNaira(r.totalAmount)}</span>
+        <span className="capitalize">Payment status: {r.paymentStatus}</span>
+      </div>
+      <div className="mt-2 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">Submitted {format(r.createdAt, 'MMM d, yyyy')}</p>
+        {r.paymentStatus === 'paid' ? (
+          <Link
+            href={`/dashboard/dues/receipt/${r.reference}`}
+            className="text-xs font-medium text-primary underline underline-offset-2"
+          >
+            View Receipt
+          </Link>
+        ) : (
+          <Link
+            href={`/dashboard/dues/invoice/${r.reference}`}
+            className="text-xs font-medium text-primary underline underline-offset-2"
+          >
+            View Invoice
+          </Link>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -267,6 +319,38 @@ function DuesPageContent() {
           </h2>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setMyRecordsOpen((v) => !v)}
+          className="mt-5 flex w-full items-center justify-between border border-border bg-muted/30 px-4 py-3 text-left hover:bg-muted/50"
+        >
+          <span className="text-sm font-medium text-foreground">
+            My Invoices &amp; Receipts
+            {!myRecordsLoading && ` (${myRecords.length})`}
+          </span>
+          {myRecordsOpen ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+
+        {myRecordsOpen && (
+          <div className="mt-3">
+            {myRecordsLoading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : myRecords.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">
+                Nothing here yet — submit a payment request below and it&apos;ll show up here.
+              </p>
+            ) : (
+              <div className="space-y-3">{myRecords.map(renderRecordRow)}</div>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleSearch} className="mt-6 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -290,43 +374,7 @@ function DuesPageContent() {
                 No record found. Once you submit a payment request below, it will show up here.
               </p>
             ) : (
-              <div className="space-y-3">
-                {results.map((r) => (
-                  <div key={r.id} className="rounded-lg border border-border bg-muted/40 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-foreground">{r.fullName}</p>
-                      <Badge variant="secondary">{r.status}</Badge>
-                    </div>
-                    <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
-                      <span className="font-mono">Ref: {r.reference}</span>
-                      <span>Matric: {r.matricNumber}</span>
-                      <span>Level: {r.level}</span>
-                      <span>Amount to pay: {formatNaira(r.totalAmount)}</span>
-                      <span className="capitalize">Payment status: {r.paymentStatus}</span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">
-                        Submitted {format(r.createdAt, 'MMM d, yyyy')}
-                      </p>
-                      {r.paymentStatus === 'paid' ? (
-                        <Link
-                          href={`/dashboard/dues/receipt/${r.reference}`}
-                          className="text-xs font-medium text-primary underline underline-offset-2"
-                        >
-                          View Receipt
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`/dashboard/dues/invoice/${r.reference}`}
-                          className="text-xs font-medium text-primary underline underline-offset-2"
-                        >
-                          View Invoice
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <div className="space-y-3">{results.map(renderRecordRow)}</div>
             )}
           </div>
         )}

@@ -76,8 +76,8 @@ export default function ReceiptPage({
           aria-hidden
           className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
         >
-          <span className="rotate-[-30deg] whitespace-nowrap text-6xl font-bold uppercase tracking-widest text-primary/[0.06] print:text-primary/10">
-            NAMSN FUNAAB · OFFICIAL RECEIPT
+          <span className="rotate-[-30deg] whitespace-nowrap text-6xl font-bold uppercase tracking-widest text-success/[0.08] print:text-success/15">
+            NAMSN FUNAAB · PAID
           </span>
         </div>
 
@@ -98,7 +98,7 @@ export default function ReceiptPage({
 
           <div className="mt-6 flex items-center justify-between">
             <h2 className="font-display text-xl font-semibold text-foreground">Payment Receipt</h2>
-            <span className="bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+            <span className="bg-success px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               Paid
             </span>
           </div>

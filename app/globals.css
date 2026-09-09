@@ -25,6 +25,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -62,6 +63,10 @@
   --accent: #c9a227; /* warm gold — NAMSN tassel, the one restrained CTA accent */
   --accent-foreground: #1a1a1a;
   --destructive: #b3261e;
+  --success: #15803d; /* vivid green for "Paid" status — --primary is a deep,
+    desaturated institutional green that reads as near-black at low opacity,
+    so it doesn't work as a status color the way --destructive's bright red
+    does at the same treatment. This is dedicated to status indicators only. */
   --border: #e4dcc8;
   --input: #e4dcc8;
   --ring: #c9a227;

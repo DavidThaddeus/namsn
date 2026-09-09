@@ -8,7 +8,7 @@ import { CheckCircle2, Circle, Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { searchDuesRequests, getAllDuesRequests, updateDuesPaymentStatus } from '@/lib/supabase/duesService';
+import { searchDuesRequests, getAllDuesRequests } from '@/lib/supabase/duesService';
 import { DuesRequest } from '@/types/dues';
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
@@ -18,7 +18,6 @@ export default function AdminDuesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const loadAll = () => {
     setLoading(true);
@@ -58,27 +57,14 @@ export default function AdminDuesPage() {
     loadAll();
   };
 
-  const togglePaid = async (request: DuesRequest) => {
-    const next = request.paymentStatus === 'paid' ? 'pending' : 'paid';
-    setUpdatingId(request.id);
-    try {
-      await updateDuesPaymentStatus(request.id, next);
-      setRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, paymentStatus: next } : r)));
-      toast.success(`Marked as ${next}`);
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-      toast.error('Failed to update status');
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="border-b border-border pb-5">
         <h1 className="font-display text-2xl font-bold text-foreground">Dues Records</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Search any student&apos;s payment request by matric number or reference, and mark payments received.
+          Search any student&apos;s payment request by matric number or reference, and view their
+          invoice or receipt. Payment status is confirmed automatically by Bachs and can&apos;t be
+          changed manually here.
         </p>
       </div>
 
@@ -139,22 +125,18 @@ export default function AdminDuesPage() {
                       <Link href={`/dashboard/dues/invoice/${r.reference}`}>Invoice</Link>
                     </Button>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={updatingId === r.id}
-                    onClick={() => togglePaid(r)}
-                    className={r.paymentStatus === 'paid' ? 'text-primary' : 'text-muted-foreground'}
+                  <span
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium ${
+                      r.paymentStatus === 'paid' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+                    }`}
                   >
-                    {updatingId === r.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : r.paymentStatus === 'paid' ? (
+                    {r.paymentStatus === 'paid' ? (
                       <CheckCircle2 className="h-3.5 w-3.5" />
                     ) : (
                       <Circle className="h-3.5 w-3.5" />
                     )}
-                    {r.paymentStatus === 'paid' ? 'Paid' : 'Mark as Paid'}
-                  </Button>
+                    {r.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                  </span>
                 </div>
               </li>
             ))}

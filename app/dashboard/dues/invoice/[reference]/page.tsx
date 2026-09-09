@@ -136,7 +136,7 @@ export default function InvoicePage({
 
           <div className="mt-6 flex items-center justify-between">
             <h2 className="font-display text-xl font-semibold text-foreground">Payment Invoice</h2>
-            <span className="bg-destructive/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-destructive">
+            <span className="bg-destructive px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               Unpaid
             </span>
           </div>

@@ -133,14 +133,6 @@ export const getAllDuesRequests = async (): Promise<DuesRequest[]> => {
   return (data as DuesRow[]).map(mapRow);
 };
 
-export const updateDuesPaymentStatus = async (id: string, paymentStatus: DuesPaymentStatus): Promise<void> => {
-  const { error } = await supabase.from(TABLE).update({ payment_status: paymentStatus }).eq('id', id);
-  if (error) {
-    console.error('Error updating payment status:', errorMessage(error));
-    throw error;
-  }
-};
-
 // Public, unauthenticated lookup for the /verify/<reference> page — backed
 // by a security-definer function that only ever returns non-sensitive
 // fields, and only for a paid record. Returns null for anything else

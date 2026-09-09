@@ -20,6 +20,7 @@ export default function InvoicePage({
 }) {
   const { reference } = use(params);
   const [dues, setDues] = useState<DuesRequest | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [payingNow, setPayingNow] = useState(false);
 
@@ -27,7 +28,10 @@ export default function InvoicePage({
     let cancelled = false;
     findDuesRequests({ reference })
       .then((data) => !cancelled && setDues(data[0] || null))
-      .catch((err) => console.error('Error loading invoice:', err))
+      .catch((err) => {
+        console.error('Error loading invoice:', err);
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load invoice.');
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -66,6 +70,15 @@ export default function InvoicePage({
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+        <p className="text-lg font-medium text-destructive">Couldn&apos;t load this invoice</p>
+        <p className="mt-1 max-w-md text-sm text-muted-foreground">{loadError}</p>
       </div>
     );
   }

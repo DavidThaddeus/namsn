@@ -52,6 +52,17 @@ const MAX_UNPAID_INVOICES = 10;
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
+// Asks our backend to actively re-check this invoice's status with Bachs
+// (not just read our own DB) — see app/api/dues/confirm/route.ts. Ignores
+// the returned `paid` flag here; the caller re-reads from our DB right
+// after, which is what actually drives what's shown.
+const confirmPayment = (reference: string) =>
+  fetch('/api/dues/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reference }),
+  });
+
 function DuesPageContent() {
   const { currentUser } = useAuth();
   const searchParams = useSearchParams();
@@ -85,6 +96,41 @@ function DuesPageContent() {
 
   const { status, amount } = LEVEL_INFO[form.level];
 
+  // Shared by the initial return-from-Bachs poll and the "Check now" retry
+  // below, so there's exactly one implementation of "keep checking until
+  // paid or timed out" instead of two copies that could drift apart.
+  const runPaymentPoll = (reference: string) => {
+    pollStartedAt.current = Date.now();
+
+    const poll = () => {
+      // Ask our backend to actively re-check with Bachs, not just read our
+      // own DB and hope the webhook already landed — a slow, dropped, or
+      // misconfigured webhook shouldn't leave the student stuck here.
+      // Best-effort: if this call itself fails, the DB read right after it
+      // still reflects whatever's true so far (e.g. an admin having marked
+      // it paid by hand), so the poll still makes progress.
+      confirmPayment(reference)
+        .catch((err) => console.error('Error confirming payment with Bachs:', err))
+        .finally(() => {
+          findDuesRequests({ reference })
+            .then((data) => {
+              const record = data[0] || null;
+              setPaymentReturnRequest(record);
+              if (record?.paymentStatus === 'paid') return; // stop polling
+
+              const elapsed = Date.now() - (pollStartedAt.current || Date.now());
+              if (elapsed >= POLL_TIMEOUT_MS) {
+                setPollTimedOut(true);
+                return;
+              }
+              pollTimer.current = setTimeout(poll, POLL_INTERVAL_MS);
+            })
+            .catch((err) => console.error('Error checking payment status:', err));
+        });
+    };
+    poll();
+  };
+
   useEffect(() => {
     const paid = searchParams.get('paid');
     const cancelled = searchParams.get('cancelled');
@@ -92,25 +138,7 @@ function DuesPageContent() {
 
     if (paid === '1' && reference) {
       setPaymentReturn('paid');
-      pollStartedAt.current = Date.now();
-
-      const poll = () => {
-        findDuesRequests({ reference })
-          .then((data) => {
-            const record = data[0] || null;
-            setPaymentReturnRequest(record);
-            if (record?.paymentStatus === 'paid') return; // stop polling
-
-            const elapsed = Date.now() - (pollStartedAt.current || Date.now());
-            if (elapsed >= POLL_TIMEOUT_MS) {
-              setPollTimedOut(true);
-              return;
-            }
-            pollTimer.current = setTimeout(poll, POLL_INTERVAL_MS);
-          })
-          .catch((err) => console.error('Error checking payment status:', err));
-      };
-      poll();
+      runPaymentPoll(reference);
     } else if (cancelled === '1') {
       setPaymentReturn('cancelled');
     }
@@ -120,6 +148,13 @@ function DuesPageContent() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleCheckAgain = () => {
+    const reference = searchParams.get('reference');
+    if (!reference) return;
+    setPollTimedOut(false);
+    runPaymentPoll(reference);
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -281,17 +316,21 @@ function DuesPageContent() {
               {paymentReturnRequest?.paymentStatus === 'paid'
                 ? `Thank you — your ${paymentReturnRequest.status.toLowerCase()} dues (${formatNaira(paymentReturnRequest.amount)}) have been received.`
                 : pollTimedOut
-                  ? "This is taking longer than usual. Your payment may still be processing on Bachs' side — search your reference below in a bit, or contact the department if this doesn't clear up."
+                  ? "This is taking longer than usual. Your payment may still be processing on Bachs' side — tap Check Now, search your reference below, or contact the department if this doesn't clear up."
                   : "Your payment went through on Bachs' side — we're just waiting for confirmation to land in our records. This page will update automatically, no need to refresh."}
             </p>
-            {paymentReturnRequest?.paymentStatus === 'paid' && (
+            {paymentReturnRequest?.paymentStatus === 'paid' ? (
               <Link
                 href={`/dashboard/dues/receipt/${paymentReturnRequest.reference}`}
                 className="mt-3 inline-flex items-center gap-1.5 bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent/90"
               >
                 <Receipt className="h-4 w-4" /> Download Receipt
               </Link>
-            )}
+            ) : pollTimedOut ? (
+              <Button variant="outline" onClick={handleCheckAgain} className="mt-3">
+                Check Now
+              </Button>
+            ) : null}
           </div>
         </div>
       )}

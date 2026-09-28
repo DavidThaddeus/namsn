@@ -77,7 +77,7 @@ export default function ContactPage() {
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-display text-base font-semibold text-foreground">Email Us</h3>
-                  <p className="mt-1 break-words text-muted-foreground">info@mathematics.funaab.edu.ng</p>
+                  <p className="mt-1 break-words text-muted-foreground">funaabnamsn@gmail.com</p>
                 </div>
               </div>
             </div>

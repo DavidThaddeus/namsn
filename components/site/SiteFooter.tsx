@@ -58,7 +58,7 @@ export function SiteFooter() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 flex-shrink-0 text-accent" />
-                <span className="min-w-0 break-words">info@mathematics.funaab.edu.ng</span>
+                <span className="min-w-0 break-words">funaabnamsn@gmail.com</span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 flex-shrink-0 text-accent" />

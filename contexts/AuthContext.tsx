@@ -149,7 +149,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (email: string): Promise<void> => {
     const toastId = toast.loading('Sending password reset email...');
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      // Without redirectTo, Supabase falls back to its own default (or
+      // whatever's set in the dashboard) which may not point at this app at
+      // all — this is what actually lands the user back on our own
+      // password-update page with a working recovery session.
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
       if (error) throw error;
       toast.success('Password reset email sent!', { id: toastId });
     } catch (error) {

@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth, AppUser } from '@/contexts/AuthContext';
+import { useAdminRole } from '@/hooks/useAdminRole';
 import { getProfile } from '@/lib/supabase/profileService';
 import { getAnnouncements } from '@/lib/supabase/announcementService';
 import { cn } from '@/lib/utils';
@@ -29,18 +30,21 @@ const navigation = [
   { name: 'Materials', href: '/dashboard/materials', icon: FileText },
   { name: 'Announcements', href: '/dashboard/announcements', icon: Bell },
   { name: 'Dues', href: '/dashboard/dues', icon: Wallet },
-  { name: 'Admin Panel', href: '/dashboard/admin', icon: ShieldCheck },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
 ];
+
+const ADMIN_NAV_ITEM = { name: 'Admin Panel', href: '/dashboard/admin', icon: ShieldCheck };
 
 export const SIDEBAR_COLLAPSE_KEY = 'namsn-dashboard-sidebar-collapsed';
 
 function NavLinks({
+  items,
   collapsed,
   pathname,
   hasUnreadAnnouncements,
   onNavigate,
 }: {
+  items: typeof navigation;
   collapsed: boolean;
   pathname: string;
   hasUnreadAnnouncements: boolean;
@@ -48,7 +52,7 @@ function NavLinks({
 }) {
   return (
     <nav className="flex-1 space-y-1 px-2 py-4">
-      {navigation.map((item) => {
+      {items.map((item) => {
         const active = pathname === item.href;
         const showDot = item.name === 'Announcements' && hasUnreadAnnouncements;
         return (
@@ -125,6 +129,16 @@ export function DashboardSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, logout } = useAuth();
+  const { role } = useAdminRole();
+
+  // Only real admins ever see the link at all — a student who happens to
+  // navigate to /dashboard/admin directly is still stopped by that route's
+  // own layout guard, but they shouldn't be shown the door in the first
+  // place.
+  const isAdmin = role !== 'student';
+  const items = isAdmin
+    ? [...navigation.slice(0, -1), ADMIN_NAV_ITEM, navigation[navigation.length - 1]]
+    : navigation;
 
   const handleLogout = async () => {
     try {
@@ -192,6 +206,7 @@ export function DashboardSidebar({
               </button>
             </div>
             <NavLinks
+              items={items}
               collapsed={false}
               pathname={pathname}
               hasUnreadAnnouncements={hasUnreadAnnouncements}
@@ -243,7 +258,7 @@ export function DashboardSidebar({
             </div>
           )}
         </div>
-        <NavLinks collapsed={collapsed} pathname={pathname} hasUnreadAnnouncements={hasUnreadAnnouncements} />
+        <NavLinks items={items} collapsed={collapsed} pathname={pathname} hasUnreadAnnouncements={hasUnreadAnnouncements} />
         <div className="border-t border-border p-3">
           <UserFooter currentUser={currentUser} collapsed={collapsed} onLogout={handleLogout} />
         </div>

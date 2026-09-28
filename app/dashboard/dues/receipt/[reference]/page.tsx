@@ -84,6 +84,14 @@ export default function ReceiptPage({
       </div>
 
       <div className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-10 print:rounded-none print:border-0 print:shadow-none">
+        {/* Frame border — sits just inside the card's own edge, close but
+            not flush against it, to read as a bordered receipt/certificate
+            rather than just another rounded card. Kept outside the
+            watermark/content stack (pointer-events-none, aria-hidden) so it
+            never intercepts clicks or gets read by screen readers, and it
+            stays visible when printed since it isn't under print:hidden. */}
+        <div aria-hidden className="pointer-events-none absolute inset-2 border-2 border-black sm:inset-3" />
+
         {/* Watermark */}
         <div
           aria-hidden
@@ -161,7 +169,10 @@ export default function ReceiptPage({
             </div>
           </div>
 
-          <p className="mt-8 text-center text-xs text-muted-foreground">
+          <p className="mt-8 text-center text-sm font-semibold uppercase tracking-wide text-foreground">
+            Team Emergence — Led by Comrade Sammie
+          </p>
+          <p className="mt-1 text-center text-xs text-muted-foreground">
             Scan the QR code above to verify this receipt online.
           </p>
         </div>

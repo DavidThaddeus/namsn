@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseService } from '@/lib/supabase/serviceClient';
-import { createCheckoutSession, getCheckoutSession } from '@/lib/bachs/client';
+import { createCheckoutSession } from '@/lib/bachs/client';
+import { confirmBachsPayment } from '@/lib/bachs/confirmPayment';
 
 const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,14 +64,7 @@ export async function POST(req: NextRequest) {
   // call does, so the old link genuinely can't be reused here.
   if (dues.bachs_collection_id) {
     try {
-      const existing = await getCheckoutSession(dues.bachs_collection_id);
-      if (existing.status === 'completed') {
-        if (dues.payment_status !== 'paid') {
-          await supabaseService
-            .from('dues_requests')
-            .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
-            .eq('id', dues.id);
-        }
+      if (await confirmBachsPayment(dues)) {
         return NextResponse.json({ error: 'This dues request is already paid' }, { status: 409 });
       }
     } catch (error) {

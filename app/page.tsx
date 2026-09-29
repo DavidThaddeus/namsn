@@ -173,14 +173,14 @@ export default function Home() {
                 <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
                   About Our Department
                 </h2>
-                <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+                <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
                   Mathematics is a subject of varied features ranging from intrinsic beauty to its
                   usefulness with wide-scope of applications in Science, Engineering, Technology
                   and Social Sciences. This Mathematics programme is designed for students who are
                   interested in these features. The curriculum has been carefully planned to
                   equip students with a broad knowledge from various aspects of Mathematics.
                 </p>
-                <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+                <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
                   The curriculum has been carefully planned to assist the students to specialize
                   according to their own aptitude in Pure Mathematics or in any area of Applied
                   Mathematics.

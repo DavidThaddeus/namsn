@@ -170,10 +170,10 @@ export default function ReceiptPage({
           </div>
 
           <p className="mt-8 text-center text-sm font-semibold uppercase tracking-wide text-foreground">
-            Team Emergence — Led by Comrade Sammie
+            Team Emergence, Led by Comr. Sammie
           </p>
           <p className="mt-1 text-center text-xs text-muted-foreground">
-            Scan the QR code above to verify this receipt online.
+            Departmental due receipt for the 2026/2027 session
           </p>
         </div>
       </div>

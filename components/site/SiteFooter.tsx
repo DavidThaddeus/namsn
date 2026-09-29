@@ -62,7 +62,7 @@ export function SiteFooter() {
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 flex-shrink-0 text-accent" />
-                <span className="min-w-0 break-words">+234 (0) 800 000 0000</span>
+                <span className="min-w-0 break-words">+2348109389247</span>
               </li>
             </ul>
           </div>

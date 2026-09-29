@@ -68,7 +68,7 @@ export default function ContactPage() {
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-display text-base font-semibold text-foreground">Call Us</h3>
-                  <p className="mt-1 break-words text-muted-foreground">+234 (0) 800 000 0000</p>
+                  <p className="mt-1 break-words text-muted-foreground">+2348109389247</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">

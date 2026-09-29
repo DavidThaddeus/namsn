@@ -30,9 +30,9 @@ import { format } from 'date-fns';
 
 const LEVEL_INFO: Record<DuesLevel, { status: StudentStatus; amount: number }> = {
   '100': { status: 'FRESHERS', amount: 6000 },
-  '200': { status: 'STAYLITES', amount: 4000 },
-  '300': { status: 'STAYLITES', amount: 4000 },
-  '400': { status: 'STAYLITES', amount: 4000 },
+  '200': { status: 'STAYLITES', amount: 5000 },
+  '300': { status: 'STAYLITES', amount: 5000 },
+  '400': { status: 'STAYLITES', amount: 5000 },
 };
 
 // Flat processing fee added on top of dues at the actual payment step.
@@ -427,7 +427,7 @@ function DuesPageContent() {
           </div>
           <div>
             <h2 className="font-display text-lg font-semibold text-foreground">Pay Departmental Dues</h2>
-            <p className="text-sm text-muted-foreground">₦6,000 for FRESHERS (100L) · ₦4,000 for STAYLITES (200–400L)</p>
+            <p className="text-sm text-muted-foreground">₦6,000 for FRESHERS (100L) · ₦5,000 for STAYLITES (200–400L)</p>
           </div>
         </div>
 

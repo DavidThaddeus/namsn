@@ -73,6 +73,14 @@ const sections = [
     show: (p: ReturnType<typeof useAdminRole>['permissions']) => p.canManageDues,
   },
   {
+    title: 'Payouts',
+    description: 'See what each party is owed from dues payments and mark payouts as sent.',
+    href: '/dashboard/admin/payouts',
+    icon: Wallet,
+    restrictedTo: 'Super Admin',
+    show: (p: ReturnType<typeof useAdminRole>['permissions']) => p.canManageDues,
+  },
+  {
     title: 'Executive Council',
     description: 'Add, edit, or remove executives and positions shown on the home page.',
     href: '/dashboard/admin/executives',

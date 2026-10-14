@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseService } from '@/lib/supabase/serviceClient';
 import { verifyBachsSignature } from '@/lib/bachs/verifySignature';
+import { recordPaymentSplits } from '@/lib/bachs/split';
 
 const WEBHOOK_SECRET = process.env.BACHS_WEBHOOK_SECRET!;
 
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
             bachs_collection_id: event.data.checkout_id || null,
           })
           .eq('id', dues.id);
+        await recordPaymentSplits(dues.id);
       }
     }
   }

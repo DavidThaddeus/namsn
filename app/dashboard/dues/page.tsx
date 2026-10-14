@@ -25,18 +25,19 @@ import {
   getMyUnpaidDuesRequests,
   getAllDuesRequests,
 } from '@/lib/supabase/duesService';
-import { DuesLevel, DuesRequest, StudentStatus } from '@/types/dues';
+import { DuesLevel, DuesRequest, StudentStatus, formatDuesLevel } from '@/types/dues';
 import { format } from 'date-fns';
 
 const LEVEL_INFO: Record<DuesLevel, { status: StudentStatus; amount: number }> = {
   '100': { status: 'FRESHERS', amount: 6000 },
+  DE: { status: 'FRESHERS', amount: 6000 },
   '200': { status: 'STAYLITES', amount: 5000 },
   '300': { status: 'STAYLITES', amount: 5000 },
   '400': { status: 'STAYLITES', amount: 5000 },
 };
 
 // Flat processing fee added on top of dues at the actual payment step.
-const SERVICE_FEE = 150;
+const SERVICE_FEE = 200;
 
 // How long to keep auto-checking for the webhook to confirm a payment
 // before giving up and telling the student to check back later.
@@ -263,7 +264,7 @@ function DuesPageContent() {
       <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
         <span className="font-mono">Ref: {r.reference}</span>
         <span>Matric: {r.matricNumber}</span>
-        <span>Level: {r.level}</span>
+        <span>Level: {formatDuesLevel(r.level)}</span>
         <span>Amount to pay: {formatNaira(r.totalAmount)}</span>
         <span className="capitalize">Payment status: {r.paymentStatus}</span>
       </div>
@@ -427,7 +428,7 @@ function DuesPageContent() {
           </div>
           <div>
             <h2 className="font-display text-lg font-semibold text-foreground">Pay Departmental Dues</h2>
-            <p className="text-sm text-muted-foreground">₦6,000 for FRESHERS (100L) · ₦5,000 for STAYLITES (200–400L)</p>
+            <p className="text-sm text-muted-foreground">₦6,000 for FRESHERS (100L & DE) · ₦5,000 for STAYLITES (200–400L)</p>
           </div>
         </div>
 
@@ -571,6 +572,7 @@ function DuesPageContent() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="100">100 Level</SelectItem>
+                    <SelectItem value="DE">DE - Freshers (Direct Entry)</SelectItem>
                     <SelectItem value="200">200 Level</SelectItem>
                     <SelectItem value="300">300 Level</SelectItem>
                     <SelectItem value="400">400 Level</SelectItem>

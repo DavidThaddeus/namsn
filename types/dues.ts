@@ -1,5 +1,10 @@
 export type StudentStatus = 'FRESHERS' | 'STAYLITES';
-export type DuesLevel = '100' | '200' | '300' | '400';
+// 'DE' = Direct Entry freshers: tracked as their own level but charged the
+// same as 100L FRESHERS.
+export type DuesLevel = '100' | 'DE' | '200' | '300' | '400';
+
+export const formatDuesLevel = (level: DuesLevel): string =>
+  level === 'DE' ? 'DE (Direct Entry)' : level;
 export type DuesPaymentStatus = 'pending' | 'paid';
 
 export interface DuesRequest {

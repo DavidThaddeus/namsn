@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { searchDuesRequests, getAllDuesRequests } from '@/lib/supabase/duesService';
-import { DuesRequest } from '@/types/dues';
+import { DuesRequest, formatDuesLevel } from '@/types/dues';
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
@@ -108,7 +108,7 @@ export default function AdminDuesPage() {
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                     <span>Matric: {r.matricNumber}</span>
-                    <span>Level: {r.level}</span>
+                    <span>Level: {formatDuesLevel(r.level)}</span>
                     <span>Dues: {formatNaira(r.amount)} + Fee: {formatNaira(r.feeAmount)} = {formatNaira(r.totalAmount)}</span>
                     <span className="break-words">{r.email}</span>
                     <span className="break-words">{r.phone}</span>

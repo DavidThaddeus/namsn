@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/serviceClient';
 import { getCheckoutSession } from './client';
+import { recordPaymentSplits } from './split';
 
 interface DuesRowForConfirm {
   id: string;
@@ -29,6 +30,7 @@ export async function confirmBachsPayment(dues: DuesRowForConfirm): Promise<bool
     .from('dues_requests')
     .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', dues.id);
+  await recordPaymentSplits(dues.id);
 
   return true;
 }

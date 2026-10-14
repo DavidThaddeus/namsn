@@ -7,7 +7,7 @@ import QRCode from 'qrcode';
 import { Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { findDuesRequests } from '@/lib/supabase/duesService';
-import { DuesRequest } from '@/types/dues';
+import { DuesRequest, formatDuesLevel } from '@/types/dues';
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
@@ -139,7 +139,7 @@ export default function ReceiptPage({
             </div>
             <div className="min-w-0">
               <p className="text-muted-foreground">Level</p>
-              <p className="break-words font-medium text-foreground">{dues.level}</p>
+              <p className="break-words font-medium text-foreground">{formatDuesLevel(dues.level)}</p>
             </div>
             <div className="min-w-0">
               <p className="text-muted-foreground">Status</p>

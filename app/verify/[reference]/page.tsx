@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { verifyReceipt } from '@/lib/supabase/duesService';
+import { formatDuesLevel } from '@/types/dues';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,7 @@ export default async function VerifyReceiptPage({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Level</span>
-                <span className="font-medium text-foreground">{receipt.level}</span>
+                <span className="font-medium text-foreground">{formatDuesLevel(receipt.level)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Reference</span>

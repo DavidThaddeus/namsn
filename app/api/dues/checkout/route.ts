@@ -93,9 +93,9 @@ export async function POST(req: NextRequest) {
       // after the first checkout session expired (60 min) got rejected as a
       // conflict instead of just starting a new one.
       idempotencyKey: crypto.randomUUID(),
-      // Destination split (department account) is added once the connected
-      // account exists — see Phase 4 step 15. Full amount goes to the
-      // platform account for now.
+      // No destination split: Bachs Connect isn't available on this account,
+      // so the full amount lands here and the split is recorded in
+      // payment_splits once the payment succeeds (see lib/bachs/split.ts).
     });
 
     await supabaseService
